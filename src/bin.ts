@@ -5,13 +5,19 @@ import { linkCommand } from "./commands/link.js";
 import { setupCommand } from "./commands/setup.js";
 import { pushCommand } from "./commands/push.js";
 import { setupCiCommand } from "./commands/setup-ci.js";
+import { banner } from "./lib/ui.js";
+
+const VERSION = "0.1.0";
 
 const program = new Command();
 
 program
   .name("buron")
   .description("Connect your codebase to Buron and generate marketing assets when you ship")
-  .version("0.1.0");
+  .version(VERSION)
+  .hook("preAction", () => {
+    banner(VERSION);
+  });
 
 program
   .command("login")

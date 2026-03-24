@@ -41,3 +41,16 @@ export function fatal(message: string): never {
   error(message);
   process.exit(1);
 }
+
+export function banner(version: string): void {
+  const art = chalk.bold(`
+  ██████╗ ██╗   ██╗██████╗  ██████╗ ███╗   ██╗
+  ██╔══██╗██║   ██║██╔══██╗██╔═══██╗████╗  ██║
+  ██████╔╝██║   ██║██████╔╝██║   ██║██╔██╗ ██║
+  ██╔══██╗██║   ██║██╔══██╗██║   ██║██║╚██╗██║
+  ██████╔╝╚██████╔╝██║  ██║╚██████╔╝██║ ╚████║
+  ╚═════╝  ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝`);
+
+  console.log(art);
+  console.log(chalk.dim(`  v${version}\n`));
+}
