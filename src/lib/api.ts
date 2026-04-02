@@ -1,18 +1,26 @@
 import { getApiUrl } from "./config.js";
 
+export { getApiUrl };
+
 export function isMockMode(): boolean {
   return process.env.BURON_MOCK === "1";
 }
 
+// ── Constants ──
+
+const DEVICE_CLIENT_ID = "buron-cli";
+const DEVICE_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:device_code";
+
 // ── Response types ──
 
-export interface AuthSessionResponse {
+export interface DeviceAuthSession {
   sessionId: string;
+  userCode: string;
   browserUrl: string;
 }
 
-export interface AuthPollResponse {
-  status: "pending" | "complete";
+export interface DeviceAuthPoll {
+  status: "pending" | "complete" | "denied" | "expired";
   token?: string;
   email?: string;
 }
@@ -29,11 +37,11 @@ export interface Org {
 }
 
 export interface LinkResponse {
-  org: Org;
+  orgs: Org[];
 }
 
 export interface PushResponse {
-  launchId: string;
+  projectId: string;
   dashboardUrl: string;
 }
 
@@ -41,45 +49,50 @@ export interface GenerateTokenResponse {
   token: string;
 }
 
-export interface LaunchStatusResponse {
-  status: "pending" | "generating" | "complete";
+export interface ProjectStatusResponse {
+  status:
+    | "backlog"
+    | "planned"
+    | "in_progress"
+    | "paused"
+    | "done"
+    | "cancelled";
   assets?: Record<string, string>;
 }
 
 // ── Mock implementations ──
 
 const mock = {
-  createAuthSession(): AuthSessionResponse {
+  createAuthSession(): DeviceAuthSession {
     return {
-      sessionId: "mock_session_001",
-      browserUrl: "https://app.buron.dev/cli-auth?session=mock_session_001",
+      sessionId: "dev_mock_001",
+      userCode: "ABCD1234",
+      browserUrl: "http://localhost:3000/device?user_code=ABCD1234",
     };
   },
 
-  pollAuthSession(): AuthPollResponse {
-    return {
-      status: "complete",
-      token: "brn_mock_xxx",
-      email: "dev@example.com",
-    };
+  pollAuthSession(): DeviceAuthPoll {
+    return { status: "complete", token: "brn_mock_xxx", email: "dev@example.com" };
   },
 
   logout(): void {},
 
   link(): LinkResponse {
     return {
-      org: {
-        id: "org_mock_001",
-        name: "Acme Inc",
-        teams: [{ id: "team_mock_001", name: "Marketing" }],
-      },
+      orgs: [
+        {
+          id: "org_mock_001",
+          name: "Acme Inc",
+          teams: [{ id: "team_mock_001", name: "Marketing" }],
+        },
+      ],
     };
   },
 
   push(): PushResponse {
     return {
-      launchId: "launch_mock_001",
-      dashboardUrl: "https://app.buron.dev/acme/marketing/launches/launch_mock_001",
+      projectId: "proj_mock_001",
+      dashboardUrl: "https://app.buron.dev/projects/proj_mock_001",
     };
   },
 
@@ -87,8 +100,8 @@ const mock = {
     return { token: "brnci_mock_xxx" };
   },
 
-  launchStatus(): LaunchStatusResponse {
-    return { status: "complete", assets: {} };
+  projectStatus(): ProjectStatusResponse {
+    return { status: "done", assets: {} };
   },
 };
 
@@ -123,9 +136,18 @@ async function request<T>(
 
     let message = `API error: ${res.status}`;
     try {
-      const errorBody = (await res.json()) as { error?: string };
+      const errorBody = (await res.json()) as {
+        error?: string;
+        message?: string;
+        cause?: string;
+      };
       if (errorBody.error) {
         message = errorBody.error;
+      } else if (errorBody.message) {
+        message = errorBody.message;
+      }
+      if (errorBody.cause) {
+        message = `${message}: ${errorBody.cause}`;
       }
     } catch {
       // use default message
@@ -143,59 +165,133 @@ async function request<T>(
 // ── Public API ──
 
 export const api = {
-  async createAuthSession(): Promise<AuthSessionResponse> {
+  async createAuthSession(): Promise<DeviceAuthSession> {
     if (isMockMode()) return mock.createAuthSession();
-    return request<AuthSessionResponse>("POST", "/api/cli/auth/session");
+
+    const baseUrl = getApiUrl();
+    const res = await fetch(`${baseUrl}/api/auth/device/code`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ client_id: DEVICE_CLIENT_ID }),
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to start auth session");
+    }
+
+    const data = (await res.json()) as {
+      device_code: string;
+      user_code: string;
+      verification_uri: string;
+      verification_uri_complete: string;
+    };
+
+    const approvalUrl = new URL(data.verification_uri_complete);
+    approvalUrl.pathname = `${approvalUrl.pathname.replace(/\/$/, "")}/approve`;
+    approvalUrl.searchParams.set("user_code", data.user_code);
+
+    return {
+      sessionId: data.device_code,
+      userCode: data.user_code,
+      browserUrl: approvalUrl.toString(),
+    };
   },
 
-  async pollAuthSession(sessionId: string): Promise<AuthPollResponse> {
+  async pollAuthSession(deviceCode: string): Promise<DeviceAuthPoll> {
     if (isMockMode()) return mock.pollAuthSession();
-    return request<AuthPollResponse>("GET", `/api/cli/auth/session/${sessionId}`);
+
+    const baseUrl = getApiUrl();
+    const res = await fetch(`${baseUrl}/api/auth/device/token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        grant_type: DEVICE_GRANT_TYPE,
+        device_code: deviceCode,
+        client_id: DEVICE_CLIENT_ID,
+      }),
+    });
+
+    if (!res.ok) {
+      const errorBody = (await res.json()) as { error?: string };
+
+      if (errorBody.error === "access_denied") {
+        return { status: "denied" };
+      }
+      if (errorBody.error === "expired_token") {
+        return { status: "expired" };
+      }
+      return { status: "pending" };
+    }
+
+    const data = (await res.json()) as { access_token: string };
+
+    const sessionRes = await fetch(`${baseUrl}/api/auth/get-session`, {
+      headers: { Authorization: `Bearer ${data.access_token}` },
+    });
+
+    let email = "";
+    if (sessionRes.ok) {
+      const sessionData = (await sessionRes.json()) as {
+        user?: { email?: string };
+      };
+      email = sessionData?.user?.email ?? "";
+    }
+
+    return {
+      status: "complete",
+      token: data.access_token,
+      email,
+    };
   },
 
   async logout(token: string): Promise<void> {
     if (isMockMode()) return mock.logout();
-    await request("POST", "/api/cli/auth/logout", { token });
+    await request("POST", "/api/auth/sign-out", { token });
   },
 
   async link(repoUrl: string, repoName: string, token: string): Promise<LinkResponse> {
     if (isMockMode()) return mock.link();
-    return request<LinkResponse>("POST", "/api/cli/link", {
+    return request<LinkResponse>("POST", "/api/v1/link", {
       body: { repoUrl, repoName },
       token,
     });
   },
 
   async push(
+    orgId: string,
     teamId: string,
     context: string,
     launch: string | null,
     token: string,
   ): Promise<PushResponse> {
     if (isMockMode()) return mock.push();
-    return request<PushResponse>("POST", `/api/cli/teams/${teamId}/push`, {
-      body: { context, launch },
+    return request<PushResponse>("POST", `/api/v1/teams/${teamId}/push`, {
+      body: { orgId, context, launch },
       token,
     });
   },
 
-  async generateToken(teamId: string, token: string): Promise<GenerateTokenResponse> {
-    if (isMockMode()) return mock.generateToken();
-    return request<GenerateTokenResponse>("POST", "/api/cli/tokens", {
-      body: { teamId },
-      token,
-    });
-  },
-
-  async launchStatus(
+  async generateToken(
+    orgId: string,
     teamId: string,
-    launchId: string,
     token: string,
-  ): Promise<LaunchStatusResponse> {
-    if (isMockMode()) return mock.launchStatus();
-    return request<LaunchStatusResponse>(
+  ): Promise<GenerateTokenResponse> {
+    if (isMockMode()) return mock.generateToken();
+    return request<GenerateTokenResponse>("POST", "/api/v1/tokens", {
+      body: { orgId, teamId },
+      token,
+    });
+  },
+
+  async projectStatus(
+    teamId: string,
+    projectId: string,
+    token: string,
+  ): Promise<ProjectStatusResponse> {
+    if (isMockMode()) return mock.projectStatus();
+    return request<ProjectStatusResponse>(
       "GET",
-      `/api/cli/teams/${teamId}/launches/${launchId}/status`,
+      `/api/v1/teams/${teamId}/projects/${projectId}/status`,
       { token },
     );
   },

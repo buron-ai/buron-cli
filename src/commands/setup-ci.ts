@@ -56,7 +56,7 @@ export async function setupCiCommand(): Promise<void> {
     // Step 2: Generate BURON_TOKEN
     const s = spinner("Generating BURON_TOKEN...");
     s.start();
-    const tokenResult = await api.generateToken(config.teamId, auth.token);
+    const tokenResult = await api.generateToken(config.orgId, config.teamId, auth.token);
     s.stop();
 
     // Step 3: Set secret

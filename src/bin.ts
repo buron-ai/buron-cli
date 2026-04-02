@@ -36,7 +36,7 @@ program
 
 program
   .command("setup")
-  .description("Scaffold .buron/ directory and install IDE commands")
+  .description("Log in, link this repo, scaffold Buron files, and install editor skills")
   .action(setupCommand);
 
 program

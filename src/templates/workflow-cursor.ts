@@ -30,13 +30,13 @@ jobs:
           CURSOR_API_KEY: \${{ secrets.CURSOR_API_KEY }}
         run: |
           cursor-agent -p "
-          Read .buron/context.md for background on this project.
+          Read .buron/product-context.md for background on this project.
 
           Look at the PR diff — what was added, changed, or removed?
           Why does it matter to end users?
 
-          Write a launch context file to .buron/launches/ with today's date
-          and a short slug based on the PR title.
+          Generate a UUID and write a launch context file to
+          .buron/launches/<uuid>.md.
 
           The file should include:
           - A summary of what shipped

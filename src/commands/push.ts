@@ -45,7 +45,7 @@ export async function pushCommand(): Promise<void> {
     const s = spinner("Pushing to Buron...");
     s.start();
 
-    const result = await api.push(config.teamId, context, launch, auth.token);
+    const result = await api.push(config.orgId, config.teamId, context, launch, auth.token);
     s.stop();
 
     blank();

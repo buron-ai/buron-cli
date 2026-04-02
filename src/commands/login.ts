@@ -29,7 +29,9 @@ export async function loginCommand(): Promise<void> {
     const session = await api.createAuthSession();
 
     blank();
-    info(`Opening browser to log in...`);
+    info(`Your code: ${session.userCode}`);
+    blank();
+    info("Opening browser to log in...");
     info(link(session.browserUrl));
     blank();
 
@@ -51,6 +53,16 @@ export async function loginCommand(): Promise<void> {
         blank();
         success(`Logged in as ${poll.email}`);
         return;
+      }
+
+      if (poll.status === "denied") {
+        s.stop();
+        fatal("Access denied. The device was not authorized.");
+      }
+
+      if (poll.status === "expired") {
+        s.stop();
+        fatal("Code expired. Run `buron login` to try again.");
       }
     }
 

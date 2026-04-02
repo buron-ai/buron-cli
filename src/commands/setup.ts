@@ -1,119 +1,88 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { checkbox } from "@inquirer/prompts";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { confirm, input } from "@inquirer/prompts";
-import { requireAuth } from "../lib/auth.js";
+import { readAuth } from "../lib/auth.js";
 import { readConfig } from "../lib/config.js";
-import { getContextPath, getLaunchesDir, getProjectDir } from "../lib/paths.js";
-import { blank, bold, error, info, success } from "../lib/ui.js";
-import { CONTEXT_TEMPLATE } from "../templates/context.js";
-import { LAUNCH_BURON_PROMPT } from "../templates/launch-buron.js";
-
+import { linkCommand } from "./link.js";
+import { loginCommand } from "./login.js";
+import {
+  getContextPath,
+  getLaunchesDir,
+  getProjectDir,
+  getSkillInstallLocations,
+  type SkillInstallLocation,
+} from "../lib/paths.js";
+import { blank, error, info, success, warn } from "../lib/ui.js";
+import { PRODUCT_CONTEXT_TEMPLATE } from "../templates/context.js";
+import { BURON_SKILL_TEMPLATE } from "../templates/skill.js";
 
 export async function setupCommand(): Promise<void> {
   try {
-    requireAuth();
+    const existingAuth = readAuth();
+    if (!existingAuth) {
+      blank();
+      info("Step 1 of 4: Log in to Buron");
+      await loginCommand();
+    } else {
+      info(`Using existing login for ${existingAuth.email}`);
+    }
 
     const config = readConfig();
     if (!config) {
-      error("Not linked. Run `buron link` first.");
-      process.exit(1);
+      blank();
+      info("Step 2 of 4: Link this repo to a Buron team");
+      await linkCommand();
+    } else {
+      info(`Using existing link for ${config.orgName} / ${config.teamName}`);
     }
+
+    blank();
+    info("Step 3 of 4: Set up Buron project files");
 
     const projectDir = getProjectDir();
     const contextPath = getContextPath();
     const launchesDir = getLaunchesDir();
 
-    // Scaffold .buron/ directory
     if (!existsSync(projectDir)) {
       mkdirSync(projectDir, { recursive: true });
+      success("Created .buron/");
     }
 
     if (!existsSync(launchesDir)) {
       mkdirSync(launchesDir, { recursive: true });
+      success("Created .buron/launches/");
     }
 
-    // Generate context.md
     if (existsSync(contextPath)) {
-      info("context.md already exists, skipping.");
+      info("product-context.md already exists, skipping.");
     } else {
-      blank();
-      const fillNow = await confirm({
-        message: "Set up your project context now? (you can edit it later)",
-        default: true,
-      });
-
-      if (fillNow) {
-        const product = await input({
-          message: "What does your product do?",
-        });
-
-        const audience = await input({
-          message: "Who is your target audience?",
-        });
-
-        const tone = await input({
-          message: "What tone should marketing use? (e.g. professional, casual, technical)",
-          default: "professional but approachable",
-        });
-
-        const content = CONTEXT_TEMPLATE.replace("{{product}}", product)
-          .replace("{{audience}}", audience)
-          .replace("{{tone}}", tone);
-
-        writeFileSync(contextPath, content, "utf-8");
-      } else {
-        writeFileSync(contextPath, CONTEXT_TEMPLATE_BLANK, "utf-8");
-        info("Fill in .buron/context.md when you're ready.");
-      }
-
-      success("Created .buron/context.md");
-    }
-
-    // Install IDE slash commands
-    const cwd = process.cwd();
-    let installed = false;
-
-    const claudeDir = join(cwd, ".claude", "commands");
-    if (existsSync(join(cwd, ".claude")) || existsSync(claudeDir)) {
-      mkdirSync(claudeDir, { recursive: true });
-      writeFileSync(join(claudeDir, "launch-buron.md"), LAUNCH_BURON_PROMPT, "utf-8");
-      success("Installed /launch-buron command for Claude Code");
-      installed = true;
-    }
-
-    const cursorDir = join(cwd, ".cursor", "commands");
-    if (existsSync(join(cwd, ".cursor")) || existsSync(cursorDir)) {
-      mkdirSync(cursorDir, { recursive: true });
-      writeFileSync(join(cursorDir, "launch-buron.md"), LAUNCH_BURON_PROMPT, "utf-8");
-      success("Installed /launch-buron command for Cursor");
-      installed = true;
-    }
-
-    if (!installed) {
-      const installBoth = await confirm({
-        message: "No IDE config detected. Install /launch-buron for both Claude Code and Cursor?",
-        default: true,
-      });
-
-      if (installBoth) {
-        mkdirSync(join(cwd, ".claude", "commands"), { recursive: true });
-        writeFileSync(
-          join(cwd, ".claude", "commands", "launch-buron.md"),
-          LAUNCH_BURON_PROMPT,
-          "utf-8",
-        );
-        mkdirSync(join(cwd, ".cursor", "commands"), { recursive: true });
-        writeFileSync(
-          join(cwd, ".cursor", "commands", "launch-buron.md"),
-          LAUNCH_BURON_PROMPT,
-          "utf-8",
-        );
-        success("Installed /launch-buron for Claude Code and Cursor");
-      }
+      writeFileSync(contextPath, PRODUCT_CONTEXT_TEMPLATE, "utf-8");
+      success("Created .buron/product-context.md");
     }
 
     blank();
-    success(`You're all set. Run ${bold("/launch-buron")} in your IDE.`);
+    info("Step 4 of 4: Install Buron for your editors");
+
+    const selectedTargets = await selectInstallLocations();
+    if (selectedTargets.length === 0) {
+      warn("No editor folders selected. Skipping skill installation.");
+    } else {
+      for (const location of selectedTargets) {
+        installEditorSupport(location);
+      }
+      success(
+        `Installed Buron for ${selectedTargets.map((target) => target.label).join(", ")}`,
+      );
+    }
+
+    blank();
+    success("Setup complete.");
+    if (existsSync(contextPath)) {
+      info("Next, run `/launch` in your editor.");
+    } else {
+      info("Before your first launch, fill `.buron/product-context.md`.");
+      info("Then run `/launch` in your editor.");
+    }
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     blank();
@@ -122,20 +91,23 @@ export async function setupCommand(): Promise<void> {
   }
 }
 
-const CONTEXT_TEMPLATE_BLANK = `# Project Context
+async function selectInstallLocations(): Promise<SkillInstallLocation[]> {
+  const locations = getSkillInstallLocations();
+  const hasDetectedTargets = locations.some((location) => existsSync(location.detectPath));
 
-## Product
-<!-- What does your product do? -->
+  const selectedIds = await checkbox({
+    message: "Which editors should Buron install into for this project?",
+    choices: locations.map((location) => ({
+      name: `${location.label} (${location.path.replace(`${process.cwd()}/`, "")})`,
+      value: location.id,
+      checked: hasDetectedTargets && existsSync(location.detectPath),
+    })),
+  });
 
-## Audience
-<!-- Who is your target audience? -->
+  return locations.filter((location) => selectedIds.includes(location.id));
+}
 
-## Tone
-<!-- What tone should marketing content use? -->
-
-## Key Features
-<!-- List the main features or selling points -->
-
-## Additional Context
-<!-- Anything else Buron should know when generating marketing assets -->
-`;
+function installEditorSupport(location: SkillInstallLocation) {
+  mkdirSync(location.path, { recursive: true });
+  writeFileSync(join(location.path, "SKILL.md"), BURON_SKILL_TEMPLATE, "utf-8");
+}

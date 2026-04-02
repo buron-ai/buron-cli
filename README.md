@@ -22,7 +22,7 @@ buron link
 buron setup
 ```
 
-Then run `/launch-buron` in Claude Code or Cursor when you're ready to ship.
+Then run `/launch` in your editor.
 
 ## Commands
 
@@ -31,7 +31,7 @@ Then run `/launch-buron` in Claude Code or Cursor when you're ready to ship.
 | `buron login` | Authenticate with Buron (opens browser) |
 | `buron logout` | Clear stored credentials |
 | `buron link` | Link the current repo to a Buron team |
-| `buron setup` | Scaffold `.buron/` directory and install IDE commands |
+| `buron setup` | Log in, link this repo, scaffold Buron files, and install editor skills |
 | `buron push` | Upload context and launch files to Buron |
 | `buron setup-ci` | Set up GitHub Actions for automated launches |
 
@@ -39,8 +39,8 @@ Then run `/launch-buron` in Claude Code or Cursor when you're ready to ship.
 
 1. **Login** authenticates you via the browser -- no tokens to copy-paste.
 2. **Link** connects your repo to your Buron org and team. If you have multiple teams, you pick one.
-3. **Setup** creates a `.buron/` directory in your repo with a `context.md` file (product description, audience, tone) and installs a `/launch-buron` slash command in your IDE.
-4. When you're ready to ship, run `/launch-buron` in your IDE. The agent reads your git diff, writes a launch context file, and runs `buron push`.
+3. **Setup** creates a `.buron/` directory in your repo with a `product-context.md` file and installs the `launch` skill into your selected editor folders.
+4. When you're ready to ship, run `/launch` in your editor. The agent reads your git diff, writes a launch context file, and runs `buron push`.
 5. Buron receives two markdown files (project context + launch context) and generates marketing assets -- blog posts, changelogs, social posts, and more.
 
 Buron never sees your code, never gets repo access, and never touches your API keys. The agent runs in your environment using your own AI provider.
@@ -49,7 +49,7 @@ Buron never sees your code, never gets repo access, and never touches your API k
 
 Only two markdown files:
 
-- `.buron/context.md` -- stable project context (product, audience, tone)
+- `.buron/product-context.md` -- stable project context (product, audience, tone)
 - `.buron/launches/<date>-<slug>.md` -- per-launch context (what shipped, why it matters)
 
 That's it. No code, no git history, no secrets.
