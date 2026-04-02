@@ -5,3 +5,7 @@ dist/
 .env.local
 .DS_Store
 .buron/
+
+# Local agent / IDE (skills and config live in repo source, not here)
+.claude/
+.cursor/
