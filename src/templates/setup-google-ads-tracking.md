@@ -57,19 +57,13 @@ Goal: produce a draft `.buron/google-ads-conversions.md` that captures the strat
 
 ### Step 1 — Read context, confirm product, confirm prerequisites
 
-**Determine which product this run is for.** The filesystem is the source of truth — Buron's knowledge layer keeps one writeup per product at `/wiki/entities/products/<slug>.md`. List the directory each run; do not persist a slug locally:
+**Determine which product this run is for.** Read the repo, pick a slug, proceed. Don't ask.
 
 ```bash
 npx buron file list /wiki/entities/products/
 ```
 
-Pick the slug autonomously from this repo's signals — don't prompt the user. In order of preference:
-
-1. **Exact match** — if a listed slug matches the `package.json` `name` field (after stripping a leading scope like `@org/`) or the repo directory name, use it.
-2. **Fuzzy match** — if a listed slug obviously refers to this repo (e.g. `buron-cli` slug for a repo named `buron-cli` or its `name` is `buron`), use it.
-3. **Derive a new slug** — if nothing matches, derive a kebab-case slug from the `package.json` name (preferred) or the repo directory name, and create a placeholder writeup via `npx buron file write /wiki/entities/products/<slug>.md`.
-
-Print one line stating which slug you picked (e.g. `Using product: cli`). Only ask the user if more than one listed slug is genuinely ambiguous after applying both match rules — that's rare.
+If a listed slug matches the repo, use it. Otherwise derive a kebab-case slug from `package.json` `name` (or the repo directory if no package.json) and use that. Move on.
 
 **Read the product writeup.**
 
