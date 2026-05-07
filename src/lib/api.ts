@@ -40,11 +40,6 @@ export interface LinkResponse {
   orgs: Org[];
 }
 
-export interface PushResponse {
-  projectId: string;
-  dashboardUrl: string;
-}
-
 export interface GenerateTokenResponse {
   token: string;
 }
@@ -86,13 +81,6 @@ const mock = {
           teams: [{ id: "team_mock_001", name: "Marketing" }],
         },
       ],
-    };
-  },
-
-  push(): PushResponse {
-    return {
-      projectId: "proj_mock_001",
-      dashboardUrl: "https://app.buron.ai/projects/proj_mock_001",
     };
   },
 
@@ -257,20 +245,6 @@ export const api = {
     });
   },
 
-  async push(
-    orgId: string,
-    teamId: string,
-    context: string,
-    launch: string | null,
-    token: string,
-  ): Promise<PushResponse> {
-    if (isMockMode()) return mock.push();
-    return request<PushResponse>("POST", `/api/v1/teams/${teamId}/push`, {
-      body: { orgId, context, launch },
-      token,
-    });
-  },
-
   async generateToken(
     orgId: string,
     teamId: string,
@@ -295,4 +269,165 @@ export const api = {
       { token },
     );
   },
+
+  files: {
+    async read(
+      orgId: string,
+      teamId: string,
+      path: string,
+      token: string,
+    ): Promise<FileReadResponse> {
+      return request<FileReadResponse>(
+        "POST",
+        `/api/v1/teams/${teamId}/files/read`,
+        { body: { orgId, path }, token },
+      );
+    },
+
+    async write(
+      orgId: string,
+      teamId: string,
+      path: string,
+      content: string,
+      token: string,
+      metadata?: Record<string, unknown>,
+    ): Promise<FileWriteResponse> {
+      return request<FileWriteResponse>(
+        "POST",
+        `/api/v1/teams/${teamId}/files/write`,
+        { body: { orgId, path, content, metadata }, token },
+      );
+    },
+
+    async append(
+      orgId: string,
+      teamId: string,
+      path: string,
+      content: string,
+      token: string,
+    ): Promise<FileWriteResponse> {
+      return request<FileWriteResponse>(
+        "POST",
+        `/api/v1/teams/${teamId}/files/append`,
+        { body: { orgId, path, content }, token },
+      );
+    },
+
+    async list(
+      orgId: string,
+      teamId: string,
+      token: string,
+      directory?: string,
+    ): Promise<FileListResponse> {
+      return request<FileListResponse>(
+        "POST",
+        `/api/v1/teams/${teamId}/files/list`,
+        { body: { orgId, directory }, token },
+      );
+    },
+
+    async glob(
+      orgId: string,
+      teamId: string,
+      pattern: string,
+      token: string,
+    ): Promise<FileListResponse> {
+      return request<FileListResponse>(
+        "POST",
+        `/api/v1/teams/${teamId}/files/glob`,
+        { body: { orgId, pattern }, token },
+      );
+    },
+
+    async grep(
+      orgId: string,
+      teamId: string,
+      pattern: string,
+      token: string,
+      directory?: string,
+    ): Promise<FileGrepResponse> {
+      return request<FileGrepResponse>(
+        "POST",
+        `/api/v1/teams/${teamId}/files/grep`,
+        { body: { orgId, pattern, directory }, token },
+      );
+    },
+
+    async delete(
+      orgId: string,
+      teamId: string,
+      path: string,
+      token: string,
+    ): Promise<{ deleted: boolean; path: string }> {
+      return request<{ deleted: boolean; path: string }>(
+        "POST",
+        `/api/v1/teams/${teamId}/files/delete`,
+        { body: { orgId, path }, token },
+      );
+    },
+
+    async move(
+      orgId: string,
+      teamId: string,
+      from: string,
+      to: string,
+      token: string,
+    ): Promise<{ path: string }> {
+      return request<{ path: string }>(
+        "POST",
+        `/api/v1/teams/${teamId}/files/move`,
+        { body: { orgId, from, to }, token },
+      );
+    },
+
+    async replace(
+      orgId: string,
+      teamId: string,
+      path: string,
+      oldString: string,
+      newString: string,
+      token: string,
+      replaceAll?: boolean,
+    ): Promise<FileWriteResponse> {
+      return request<FileWriteResponse>(
+        "POST",
+        `/api/v1/teams/${teamId}/files/replace`,
+        {
+          body: { orgId, path, oldString, newString, replaceAll },
+          token,
+        },
+      );
+    },
+  },
 };
+
+// ── File API response types ──
+
+export interface FileReadResponse {
+  found: boolean;
+  path: string;
+  content?: string;
+  metadata?: Record<string, unknown>;
+  updatedAt?: string;
+}
+
+export interface FileWriteResponse {
+  path: string;
+  bytes: number;
+}
+
+export interface FileListResponse {
+  files: Array<{
+    path: string;
+    metadata?: Record<string, unknown>;
+    updatedAt?: string;
+  }>;
+}
+
+export interface FileGrepResponse {
+  matches: Array<{
+    path: string;
+    line?: number;
+    content?: string;
+  }>;
+}

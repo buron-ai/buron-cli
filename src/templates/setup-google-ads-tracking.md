@@ -57,11 +57,29 @@ Goal: produce a draft `.buron/google-ads-conversions.md` that captures the strat
 
 ### Step 1 — Read context, confirm product, confirm prerequisites
 
-**Determine which product this run is for.** Buron's knowledge layer keeps one writeup per product at `/wiki/entities/products/<slug>.md`. Read the local `.buron/config.json` for a `productSlug` field; if absent or stale, list `/wiki/entities/products/` via the Buron MCP `listFiles` tool and ask the user to pick the product (or create a new one). Save the chosen slug into `.buron/config.json` for re-runs.
+**Determine which product this run is for.** The filesystem is the source of truth — Buron's knowledge layer keeps one writeup per product at `/wiki/entities/products/<slug>.md`. List the directory each run; do not persist a slug locally:
 
-**Read context.** Pull the product writeup from `/wiki/entities/products/<slug>.md` via MCP `readFile`. If a local `.buron/product-context.md` also exists, treat it as a workspace-private supplement — useful but secondary to the knowledge-layer source of truth. If the knowledge-layer page is empty (placeholder), stop and ask the user to populate the product writeup before tracking can be set up.
+```bash
+npx buron file list /wiki/entities/products/
+```
 
-**Read existing spec if any.** Pull `/ads/google/conversions/<product-slug>.md` via MCP `readFile`. If present, this run is an update, not a first-time setup — treat the existing spec as the current state and re-run phase 2 review against the latest codebase. If absent, this is a first-time setup.
+Match the listing against this repo's signals (repo name, README, `package.json`, codebase clues). If exactly one product clearly matches, confirm with the user in one line. If multiple plausibly match, ask the user to pick. If none match, propose a new slug, draft a placeholder writeup, and create it via `npx buron file write /wiki/entities/products/<slug>.md` — but only after the user confirms the slug.
+
+**Read the product writeup.**
+
+```bash
+npx buron file read /wiki/entities/products/<slug>.md
+```
+
+This is the canonical product context. If the writeup is empty or a placeholder, stop and ask the user to populate it before tracking can be set up.
+
+**Read existing spec if any.**
+
+```bash
+npx buron file read /ads/google/conversions/<slug>.md
+```
+
+If found, this run is an update, not a first-time setup — treat the existing spec as the current state and re-run phase 2 review against the latest codebase. If not found, this is a first-time setup.
 
 **Confirm prerequisites.** Buron's Google Ads integration must be connected for this project (the platform-side checks in phase 2 depend on it). If not connected, stop and direct the user to the Buron app to OAuth, then resume.
 
@@ -416,14 +434,19 @@ Triangulation note: don't chase perfect parity. Google Ads applies its attributi
 
 Once validation passes, commit the drafts to Buron's knowledge layer so downstream agents (Analytics workspace, Ads workspace) read from a finalised source rather than a local draft.
 
-Use the Buron MCP server's `writeFile` tool — it's the canonical knowledge-layer write surface, JWT-authenticated and scoped to the user's org + team. Two writes, both keyed by the product slug determined in step 1:
+Use the Buron CLI's `file write` command — it's the canonical knowledge-layer write surface, scoped to the user's org + team via their existing CLI auth. Two writes, both keyed by the product slug discovered in step 1:
 
-1. `writeFile({ path: '/ads/google/conversions/<product-slug>.md', content: <contents of .buron/google-ads-conversions.md> })` — the spec
-2. `writeFile({ path: '/ads/google/tracking-status/<product-slug>.md', content: <contents of .buron/google-ads-tracking-status.md> })` — the audit
+```bash
+npx buron file write /ads/google/conversions/<slug>.md \
+  --from-file .buron/google-ads-conversions.md
+
+npx buron file write /ads/google/tracking-status/<slug>.md \
+  --from-file .buron/google-ads-tracking-status.md
+```
 
 Path convention: `/ads/google/` is the existing Google Ads knowledge sub-tree (alongside `rules/`, `strategy/`, `reports/`, `analyses/`). The new `conversions/` and `tracking-status/` sub-dirs hold one file per product so multi-product teams don't collide.
 
-The local files in `.buron/` stay in the repo as a working copy (faster re-runs, gives the user a record of what was finalised). The knowledge-layer versions are now the source of truth that downstream agents read from. Do not use `npx buron push` for these — that command is for launch artefacts, not the tracking spec.
+The local files in `.buron/` stay in the repo as a working copy (faster re-runs, gives the user a record of what was finalised). The knowledge-layer versions are now the source of truth that downstream agents read from.
 
 If the Buron MCP server is not configured in this IDE, stop and direct the user to install it (Claude Code: `claude mcp add buron <url>`; Cursor: `.cursor/mcp.json`). Once installed, resume from this step.
 

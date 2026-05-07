@@ -44,7 +44,9 @@ jobs:
           - Why it matters (value to end users)
           - Any breaking changes or migration notes
 
-          Then run: npx buron push
+          Then commit it to Buron:
+          npx buron file write /launches/<product-slug>/<YYYY-MM-DD-slug>.md \\
+            --from-file <local-launch-path>
           "
 
       - name: Poll for assets

@@ -33,17 +33,29 @@ Do not mention that content was excluded. Just leave it out.
 
 ## Step 1 — Resolve the product
 
-Read `.buron/config.json` for `productSlug`. If absent or stale, list `/wiki/entities/products/` via the Buron MCP `listFiles` tool and ask the user which product this launch is for (or whether to create a new product entry). Save the chosen slug into `.buron/config.json` for re-runs.
+The filesystem is the source of truth. List the products directory each run; do not persist a slug locally:
 
-If the chosen product's writeup at `/wiki/entities/products/<slug>.md` is empty or a placeholder, stop and ask the user to populate it before drafting the launch — marketing agents downstream rely on it for positioning and audience context.
+```bash
+npx buron file list /wiki/entities/products/
+```
+
+Match the listing against this repo's signals (repo name, README, `package.json`, codebase clues). If exactly one product clearly matches, confirm with the user in one line. If multiple plausibly match, ask the user to pick. If none match, propose a new slug, draft a placeholder writeup, and create it via `npx buron file write /wiki/entities/products/<slug>.md` — but only after the user confirms the slug.
+
+If the chosen product's writeup is empty or a placeholder, stop and ask the user to populate it before drafting the launch — marketing agents downstream rely on it for positioning and audience context.
 
 ## Step 2 — Read product context
 
-Pull the product writeup from `/wiki/entities/products/<slug>.md` via MCP `readFile`. This is the canonical product context.
+```bash
+npx buron file read /wiki/entities/products/<slug>.md
+```
 
-If a local `.buron/product-context.md` also exists, treat it as a workspace-private supplement — useful but secondary. (Legacy: pre-multi-product setups stored a single `product-context.md` at the repo root; new setups should not rely on it.)
+This is the canonical product context.
 
-While reading the writeup, check whether it has unfilled placeholder comments or is missing details about capabilities you know exist in the codebase. If so, propose updates to the user; on confirmation, write the updated writeup back via MCP `writeFile` to `/wiki/entities/products/<slug>.md`.
+While reading the writeup, check whether it has unfilled placeholder comments or is missing details about capabilities you know exist in the codebase. If so, propose updates to the user; on confirmation, write the updated writeup back:
+
+```bash
+npx buron file write /wiki/entities/products/<slug>.md --from-file <local-draft-path>
+```
 
 Write from the user's perspective: what the product does, who uses it, what they can do with it. If the file already has good content, refine rather than overwrite. If the product has multiple distinct areas (e.g. a web app, CLI, and API), use `###` subheadings under Capabilities and How It Works to organize by area.
 
@@ -92,18 +104,16 @@ changed defaults. Write "None" if not applicable.
 
 ## Step 4 — Commit to Buron's knowledge layer
 
-Once the user has reviewed the local draft and is happy with it, commit it to Buron's knowledge layer via the MCP `writeFile` tool. This is what triggers the downstream marketing project:
+Once the user has reviewed the local draft and is happy with it, commit it via the Buron CLI:
 
-```
-writeFile({
-  path: '/launches/<product-slug>/<YYYY-MM-DD-slug>.md',
-  content: <contents of the local launch file>
-})
+```bash
+npx buron file write /launches/<slug>/<YYYY-MM-DD-slug>.md \
+  --from-file .buron/launches/<YYYY-MM-DD-slug>.md
 ```
 
-The local `.buron/launches/<slug>.md` stays in the repo as a working copy.
+`<slug>` is the product slug from step 1. The local `.buron/launches/<slug>.md` stays in the repo as a working copy.
 
-If the Buron MCP server is not configured in this IDE, stop and direct the user to install it (Claude Code: `claude mcp add buron <url>`; Cursor: `.cursor/mcp.json`). Resume from this step once installed.
+The platform-side workflow that creates the marketing project from this write is being migrated; for now a launch lands in the knowledge layer but the project may need to be created manually in the Buron app until the migration completes.
 
 ## Step 5 — Confirm and exit
 
