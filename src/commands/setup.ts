@@ -1,31 +1,19 @@
 import { checkbox } from "@inquirer/prompts";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { readAuth } from "../lib/auth.js";
 import { readConfig } from "../lib/config.js";
 import { linkCommand } from "./link.js";
 import { loginCommand } from "./login.js";
 import {
-  type BuronSkill,
   getContextPath,
   getLaunchesDir,
   getProjectDir,
   getSkillInstallLocations,
-  getSkillPath,
   type SkillInstallLocation,
 } from "../lib/paths.js";
+import { installSkills, SKILLS } from "../lib/skills.js";
 import { blank, error, info, success, warn } from "../lib/ui.js";
 import { PRODUCT_CONTEXT_TEMPLATE } from "../templates/context.js";
-import LAUNCH_SKILL_TEMPLATE from "../templates/launch.md";
-import SETUP_GOOGLE_ADS_TRACKING_SKILL_TEMPLATE from "../templates/setup-google-ads-tracking.md";
-
-const SKILLS: BuronSkill[] = [
-  { name: "launch", template: LAUNCH_SKILL_TEMPLATE },
-  {
-    name: "setup-google-ads-tracking",
-    template: SETUP_GOOGLE_ADS_TRACKING_SKILL_TEMPLATE,
-  },
-];
 
 export async function setupCommand(): Promise<void> {
   try {
@@ -121,9 +109,5 @@ async function selectInstallLocations(): Promise<SkillInstallLocation[]> {
 }
 
 function installEditorSupport(location: SkillInstallLocation) {
-  for (const skill of SKILLS) {
-    const skillPath = getSkillPath(location, skill.name);
-    mkdirSync(skillPath, { recursive: true });
-    writeFileSync(join(skillPath, "SKILL.md"), skill.template, "utf-8");
-  }
+  installSkills(location);
 }

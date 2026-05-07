@@ -5,6 +5,7 @@ import { linkCommand } from "./commands/link.js";
 import { setupCommand } from "./commands/setup.js";
 import { pushCommand } from "./commands/push.js";
 import { setupCiCommand } from "./commands/setup-ci.js";
+import { skillsUpdateCommand } from "./commands/skills.js";
 import { banner } from "./lib/ui.js";
 
 const VERSION = "0.2.0";
@@ -48,5 +49,14 @@ program
   .command("setup-ci")
   .description("Set up GitHub Actions for automated launches")
   .action(setupCiCommand);
+
+const skills = program
+  .command("skills")
+  .description("Manage installed Buron skills");
+
+skills
+  .command("update")
+  .description("Refresh installed skills with the latest templates")
+  .action(skillsUpdateCommand);
 
 program.parse();
