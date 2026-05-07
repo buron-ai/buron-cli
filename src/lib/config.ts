@@ -8,6 +8,13 @@ export interface ProjectConfig {
   teamId: string;
   teamName: string;
   apiUrl: string;
+  /**
+   * Slug of the product this repo is linked to (e.g. "cli", "google-ads").
+   * Populated by skills that need product scope (see /setup-google-ads-tracking
+   * step 1). Future: set at `buron link` time once products become a first-class
+   * scope in the CLI.
+   */
+  productSlug?: string;
 }
 
 const DEFAULT_API_URL = "https://app.buron.ai";

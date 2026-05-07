@@ -55,15 +55,19 @@ You are not writing marketing copy. You are writing a measurement specification 
 
 Goal: produce a draft `.buron/google-ads-conversions.md` that captures the strategic decisions, before touching any code.
 
-### Step 1 — Read context and confirm prerequisites
+### Step 1 — Read context, confirm product, confirm prerequisites
 
-Read `.buron/product-context.md` and `.buron/google-ads-conversions.md` if either exists. The product context is populated by Buron onboarding; treat it as ground truth for the user's product, audience, and motion. If `google-ads-conversions.md` already exists, this run is an update, not a first-time setup — read it first and treat it as the current spec.
+**Determine which product this run is for.** Buron's knowledge layer keeps one writeup per product at `/wiki/entities/products/<slug>.md`. Read the local `.buron/config.json` for a `productSlug` field; if absent or stale, list `/wiki/entities/products/` via the Buron MCP `listFiles` tool and ask the user to pick the product (or create a new one). Save the chosen slug into `.buron/config.json` for re-runs.
 
-Confirm Buron's Google Ads integration is connected for this project (the platform-side checks in phase 2 depend on it). If not connected, stop and direct the user to the Buron app to OAuth, then resume.
+**Read context.** Pull the product writeup from `/wiki/entities/products/<slug>.md` via MCP `readFile`. If a local `.buron/product-context.md` also exists, treat it as a workspace-private supplement — useful but secondary to the knowledge-layer source of truth. If the knowledge-layer page is empty (placeholder), stop and ask the user to populate the product writeup before tracking can be set up.
+
+**Read existing spec if any.** Pull `/ads/google/conversions/<product-slug>.md` via MCP `readFile`. If present, this run is an update, not a first-time setup — treat the existing spec as the current state and re-run phase 2 review against the latest codebase. If absent, this is a first-time setup.
+
+**Confirm prerequisites.** Buron's Google Ads integration must be connected for this project (the platform-side checks in phase 2 depend on it). If not connected, stop and direct the user to the Buron app to OAuth, then resume.
 
 ### Step 2 — Confirm the motion in one line
 
-Read the motion from `product-context.md` and state it back: *"You're a B2B sales-led product targeting mid-market revops teams — confirm?"* Only ask the full diagnostic question if the context file is genuinely ambiguous (rare; usually means the product has both a self-serve and sales-led path the website doesn't surface).
+Read the motion from the product writeup (`/wiki/entities/products/<slug>.md`) and state it back: *"You're a B2B sales-led product targeting mid-market revops teams — confirm?"* Only ask the full diagnostic question if the writeup is genuinely ambiguous (rare; usually means the product has both a self-serve and sales-led path the website doesn't surface).
 
 The motion drives every default downstream. See appendix A for the variant table.
 
@@ -190,7 +194,7 @@ Attribution is checked in two halves because the failure can sit on either side.
 
 ### Step 8 — Detect cross-domain split
 
-Read `product-context.md` and the codebase for the registrable-domain layout. Three buckets:
+Read the product writeup (`/wiki/entities/products/<slug>.md`) and the codebase for the registrable-domain layout. Three buckets:
 
 - **Same eTLD+1** (marketing site and conversion-firing surface share one registrable domain) — first-party cookies carry gclid across naturally; verify cookie scope and SameSite.
 - **Cross-domain, same controller** (e.g. `example.com` marketing site → `app.example.io` product). Cookies cannot bridge; must use GA4's cross-domain measurement (linker decoration adds `_gl` query param) or a backend handoff (server-side capture of gclid + persistence to user record at signup).
@@ -412,10 +416,12 @@ Triangulation note: don't chase perfect parity. Google Ads applies its attributi
 
 Once validation passes, commit the drafts to Buron's knowledge layer so downstream agents (Analytics workspace, Ads workspace) read from a finalised source rather than a local draft.
 
-Use the Buron MCP server's `writeFile` tool — it's the canonical knowledge-layer write surface, JWT-authenticated and scoped to the user's org + team. Two writes:
+Use the Buron MCP server's `writeFile` tool — it's the canonical knowledge-layer write surface, JWT-authenticated and scoped to the user's org + team. Two writes, both keyed by the product slug determined in step 1:
 
-1. `writeFile({ path: 'ads/google/conversions.md', content: <contents of .buron/google-ads-conversions.md> })` — the spec
-2. `writeFile({ path: 'ads/google/tracking-status.md', content: <contents of .buron/google-ads-tracking-status.md> })` — the audit
+1. `writeFile({ path: '/ads/google/conversions/<product-slug>.md', content: <contents of .buron/google-ads-conversions.md> })` — the spec
+2. `writeFile({ path: '/ads/google/tracking-status/<product-slug>.md', content: <contents of .buron/google-ads-tracking-status.md> })` — the audit
+
+Path convention: `/ads/google/` is the existing Google Ads knowledge sub-tree (alongside `rules/`, `strategy/`, `reports/`, `analyses/`). The new `conversions/` and `tracking-status/` sub-dirs hold one file per product so multi-product teams don't collide.
 
 The local files in `.buron/` stay in the repo as a working copy (faster re-runs, gives the user a record of what was finalised). The knowledge-layer versions are now the source of truth that downstream agents read from. Do not use `npx buron push` for these — that command is for launch artefacts, not the tracking spec.
 
