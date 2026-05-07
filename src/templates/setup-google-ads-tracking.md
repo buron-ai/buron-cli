@@ -63,7 +63,13 @@ Goal: produce a draft `.buron/google-ads-conversions.md` that captures the strat
 npx buron file list /wiki/entities/products/
 ```
 
-Match the listing against this repo's signals (repo name, README, `package.json`, codebase clues). If exactly one product clearly matches, confirm with the user in one line. If multiple plausibly match, ask the user to pick. If none match, propose a new slug, draft a placeholder writeup, and create it via `npx buron file write /wiki/entities/products/<slug>.md` — but only after the user confirms the slug.
+Pick the slug autonomously from this repo's signals — don't prompt the user. In order of preference:
+
+1. **Exact match** — if a listed slug matches the `package.json` `name` field (after stripping a leading scope like `@org/`) or the repo directory name, use it.
+2. **Fuzzy match** — if a listed slug obviously refers to this repo (e.g. `buron-cli` slug for a repo named `buron-cli` or its `name` is `buron`), use it.
+3. **Derive a new slug** — if nothing matches, derive a kebab-case slug from the `package.json` name (preferred) or the repo directory name, and create a placeholder writeup via `npx buron file write /wiki/entities/products/<slug>.md`.
+
+Print one line stating which slug you picked (e.g. `Using product: cli`). Only ask the user if more than one listed slug is genuinely ambiguous after applying both match rules — that's rare.
 
 **Read the product writeup.**
 
