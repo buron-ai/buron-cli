@@ -9,3 +9,4 @@ dist/
 # Local agent / IDE (skills and config live in repo source, not here)
 .claude/
 .cursor/
+.obsidian/

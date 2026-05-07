@@ -8,6 +8,9 @@ export default defineConfig({
   clean: true,
   splitting: false,
   sourcemap: true,
+  loader: {
+    ".md": "text",
+  },
   banner: {
     js: "#!/usr/bin/env node",
   },

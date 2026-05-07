@@ -1,6 +1,6 @@
 {
   "name": "buron",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "CLI for Buron — connect your codebase, generate marketing assets when you ship",
   "type": "module",
   "bin": {

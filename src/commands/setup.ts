@@ -6,15 +6,26 @@ import { readConfig } from "../lib/config.js";
 import { linkCommand } from "./link.js";
 import { loginCommand } from "./login.js";
 import {
+  type BuronSkill,
   getContextPath,
   getLaunchesDir,
   getProjectDir,
   getSkillInstallLocations,
+  getSkillPath,
   type SkillInstallLocation,
 } from "../lib/paths.js";
 import { blank, error, info, success, warn } from "../lib/ui.js";
 import { PRODUCT_CONTEXT_TEMPLATE } from "../templates/context.js";
-import { BURON_SKILL_TEMPLATE } from "../templates/skill.js";
+import LAUNCH_SKILL_TEMPLATE from "../templates/launch.md";
+import SETUP_GOOGLE_ADS_TRACKING_SKILL_TEMPLATE from "../templates/setup-google-ads-tracking.md";
+
+const SKILLS: BuronSkill[] = [
+  { name: "launch", template: LAUNCH_SKILL_TEMPLATE },
+  {
+    name: "setup-google-ads-tracking",
+    template: SETUP_GOOGLE_ADS_TRACKING_SKILL_TEMPLATE,
+  },
+];
 
 export async function setupCommand(): Promise<void> {
   try {
@@ -61,7 +72,7 @@ export async function setupCommand(): Promise<void> {
     }
 
     blank();
-    info("Step 4 of 4: Install Buron for your editors");
+    info("Step 4 of 4: Install Buron skills for your editors");
 
     const selectedTargets = await selectInstallLocations();
     if (selectedTargets.length === 0) {
@@ -71,17 +82,19 @@ export async function setupCommand(): Promise<void> {
         installEditorSupport(location);
       }
       success(
-        `Installed Buron for ${selectedTargets.map((target) => target.label).join(", ")}`,
+        `Installed ${SKILLS.length} skills for ${selectedTargets
+          .map((target) => target.label)
+          .join(", ")}`,
       );
     }
 
     blank();
     success("Setup complete.");
     if (existsSync(contextPath)) {
-      info("Next, run `/launch` in your editor.");
+      info("Next, run `/launch` or `/setup-google-ads-tracking` in your editor.");
     } else {
       info("Before your first launch, fill `.buron/product-context.md`.");
-      info("Then run `/launch` in your editor.");
+      info("Then run `/launch` or `/setup-google-ads-tracking` in your editor.");
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
@@ -98,7 +111,7 @@ async function selectInstallLocations(): Promise<SkillInstallLocation[]> {
   const selectedIds = await checkbox({
     message: "Which editors should Buron install into for this project?",
     choices: locations.map((location) => ({
-      name: `${location.label} (${location.path.replace(`${process.cwd()}/`, "")})`,
+      name: `${location.label} (${location.skillsDir.replace(`${process.cwd()}/`, "")})`,
       value: location.id,
       checked: hasDetectedTargets && existsSync(location.detectPath),
     })),
@@ -108,6 +121,9 @@ async function selectInstallLocations(): Promise<SkillInstallLocation[]> {
 }
 
 function installEditorSupport(location: SkillInstallLocation) {
-  mkdirSync(location.path, { recursive: true });
-  writeFileSync(join(location.path, "SKILL.md"), BURON_SKILL_TEMPLATE, "utf-8");
+  for (const skill of SKILLS) {
+    const skillPath = getSkillPath(location, skill.name);
+    mkdirSync(skillPath, { recursive: true });
+    writeFileSync(join(skillPath, "SKILL.md"), skill.template, "utf-8");
+  }
 }

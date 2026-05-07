@@ -12,7 +12,7 @@ export interface SkillInstallLocation {
   id: SkillInstallTarget;
   label: string;
   detectPath: string;
-  path: string;
+  skillsDir: string;
 }
 
 export function getUserDir(): string {
@@ -51,31 +51,40 @@ export function getSkillInstallLocations(cwd?: string): SkillInstallLocation[] {
       id: "cursor",
       label: "Cursor",
       detectPath: join(root, ".cursor"),
-      path: join(root, ".cursor", "skills", "launch"),
+      skillsDir: join(root, ".cursor", "skills"),
     },
     {
       id: "claude",
       label: "Claude Code",
       detectPath: join(root, ".claude"),
-      path: join(root, ".claude", "skills", "launch"),
+      skillsDir: join(root, ".claude", "skills"),
     },
     {
       id: "copilot",
       label: "GitHub Copilot",
       detectPath: join(root, ".github"),
-      path: join(root, ".github", "skills", "launch"),
+      skillsDir: join(root, ".github", "skills"),
     },
     {
       id: "codex",
       label: "OpenAI Codex",
       detectPath: join(root, ".codex"),
-      path: join(root, ".codex", "skills", "launch"),
+      skillsDir: join(root, ".codex", "skills"),
     },
     {
       id: "agents",
       label: "Generic agents",
       detectPath: join(root, ".agents"),
-      path: join(root, ".agents", "skills", "launch"),
+      skillsDir: join(root, ".agents", "skills"),
     },
   ];
+}
+
+export interface BuronSkill {
+  name: string;
+  template: string;
+}
+
+export function getSkillPath(location: SkillInstallLocation, skillName: string): string {
+  return join(location.skillsDir, skillName);
 }
