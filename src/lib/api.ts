@@ -92,7 +92,7 @@ const mock = {
   push(): PushResponse {
     return {
       projectId: "proj_mock_001",
-      dashboardUrl: "https://app.buron.dev/projects/proj_mock_001",
+      dashboardUrl: "https://app.buron.ai/projects/proj_mock_001",
     };
   },
 

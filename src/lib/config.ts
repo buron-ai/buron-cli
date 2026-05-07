@@ -10,7 +10,7 @@ export interface ProjectConfig {
   apiUrl: string;
 }
 
-const DEFAULT_API_URL = "https://app.buron.dev";
+const DEFAULT_API_URL = "https://app.buron.ai";
 
 export function readConfig(): ProjectConfig | null {
   const configPath = getConfigPath();

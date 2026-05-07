@@ -1,6 +1,6 @@
 # Buron CLI
 
-The developer CLI for [Buron](https://buron.dev) -- connect your codebase and generate marketing assets when you ship.
+The developer CLI for [Buron](https://buron.ai) -- connect your codebase and generate marketing assets when you ship.
 
 ## Install
 

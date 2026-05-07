@@ -29,7 +29,7 @@ export async function linkCommand(): Promise<void> {
     const { orgs } = result;
 
     if (orgs.length === 0) {
-      fatal("No organizations found. Create one at app.buron.dev first.");
+      fatal("No organizations found. Create one at app.buron.ai first.");
     }
 
     let selectedOrg: Org;
