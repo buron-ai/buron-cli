@@ -128,16 +128,42 @@ export async function setupCiCommand(): Promise<void> {
 
     // Step 4: Set the agent's API key as a GitHub secret
     blank();
-    info(`One last step — add your ${spec.providerLabel} API key as a GitHub secret:`);
+    info(`Two GitHub secrets to set so the workflow can run:`);
     blank();
 
     if (ghAvailable) {
-      const setNow = await confirm({
-        message: `Set ${spec.apiKeyName} now? (gh will prompt you for the value)`,
+      // Buron token first — required for the CLI to authenticate without
+      // running `buron login` (no interactive flow in CI).
+      info(
+        "BURON_TOKEN is your Buron account token. Find it in ~/Library/Application Support/com.buron.cli/auth.json (macOS), $XDG_CONFIG_HOME/com.buron.cli/auth.json (Linux), or %APPDATA%\\\\com.buron.cli\\\\auth.json (Windows) under the 'token' field.",
+      );
+      blank();
+
+      const setBuron = await confirm({
+        message: `Set ${bold("BURON_TOKEN")} now?`,
         default: true,
       });
 
-      if (setNow) {
+      if (setBuron) {
+        try {
+          execFileSync("gh", ["secret", "set", "BURON_TOKEN"], { stdio: "inherit" });
+          success("BURON_TOKEN secret set");
+        } catch {
+          warn("Failed to set BURON_TOKEN.");
+          info(`Try again with: ${bold("gh secret set BURON_TOKEN")}`);
+        }
+      } else {
+        info(`When you're ready, run: ${bold("gh secret set BURON_TOKEN")}`);
+      }
+
+      blank();
+
+      const setProvider = await confirm({
+        message: `Set ${bold(spec.apiKeyName)} now? (your ${spec.providerLabel} API key)`,
+        default: true,
+      });
+
+      if (setProvider) {
         try {
           execFileSync("gh", ["secret", "set", spec.apiKeyName], { stdio: "inherit" });
           success(`${spec.apiKeyName} secret set`);
@@ -149,9 +175,10 @@ export async function setupCiCommand(): Promise<void> {
         info(`When you're ready, run: ${bold(`gh secret set ${spec.apiKeyName}`)}`);
       }
     } else {
+      info("  BURON_TOKEN: <your Buron account token>");
       info(`  ${spec.apiKeyName}: <your ${spec.providerLabel} API key>`);
       if (spec.consoleUrl) {
-        info(`  Get one at ${link(spec.consoleUrl)}`);
+        info(`  ${spec.providerLabel} keys at ${link(spec.consoleUrl)}`);
       }
     }
 

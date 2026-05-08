@@ -26,8 +26,12 @@ jobs:
       - name: Install dependencies
         run: npm install --no-save @cursor/sdk tsx
 
+      - name: Install Buron CLI
+        run: npm i -g @buron/cli
+
       - name: File Buron source
         env:
           CURSOR_API_KEY: \${{ secrets.CURSOR_API_KEY }}
+          BURON_TOKEN: \${{ secrets.BURON_TOKEN }}
         run: npx tsx .buron/ci/launch.ts
 `;

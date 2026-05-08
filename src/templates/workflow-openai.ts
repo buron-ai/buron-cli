@@ -29,5 +29,6 @@ jobs:
       - name: File Buron source
         env:
           OPENAI_API_KEY: \${{ secrets.OPENAI_API_KEY }}
+          BURON_TOKEN: \${{ secrets.BURON_TOKEN }}
         run: npx tsx .buron/ci/launch.ts
 `;

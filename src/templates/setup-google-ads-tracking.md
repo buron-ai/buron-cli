@@ -60,7 +60,7 @@ Goal: produce a draft `.buron/google-ads-conversions.md` that captures the strat
 **Determine which product this run is for.** Read the repo, pick a slug, proceed. Don't ask.
 
 ```bash
-npx buron file list /wiki/entities/products/
+buron file list /wiki/entities/products/
 ```
 
 If a listed slug matches the repo, use it. Otherwise derive a kebab-case slug from `package.json` `name` (or the repo directory if no package.json) and use that. Move on.
@@ -68,7 +68,7 @@ If a listed slug matches the repo, use it. Otherwise derive a kebab-case slug fr
 **Read the product writeup.**
 
 ```bash
-npx buron file read /wiki/entities/products/<slug>.md
+buron file read /wiki/entities/products/<slug>.md
 ```
 
 This is the canonical product context. If the writeup is empty or a placeholder, stop and ask the user to populate it before tracking can be set up.
@@ -76,7 +76,7 @@ This is the canonical product context. If the writeup is empty or a placeholder,
 **Read existing spec if any.**
 
 ```bash
-npx buron file read /ads/google/conversions/<slug>.md
+buron file read /ads/google/conversions/<slug>.md
 ```
 
 If found, this run is an update, not a first-time setup — treat the existing spec as the current state and re-run phase 2 review against the latest codebase. If not found, this is a first-time setup.
@@ -437,10 +437,10 @@ Once validation passes, commit the drafts to Buron's knowledge layer so downstre
 Use the Buron CLI's `file write` command — it's the canonical knowledge-layer write surface, scoped to the user's org + team via their existing CLI auth. Two writes, both keyed by the product slug discovered in step 1:
 
 ```bash
-npx buron file write /ads/google/conversions/<slug>.md \
+buron file write /ads/google/conversions/<slug>.md \
   --from-file .buron/google-ads-conversions.md
 
-npx buron file write /ads/google/tracking-status/<slug>.md \
+buron file write /ads/google/tracking-status/<slug>.md \
   --from-file .buron/google-ads-tracking-status.md
 ```
 

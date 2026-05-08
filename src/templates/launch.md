@@ -45,10 +45,10 @@ Destination path: `/wiki/sources/<env>/<YYYY-MM-DD>-<branch-slug>.md`. Local wor
 Before filing the changes source for the current PR, check whether Buron has any prior sources for this repo:
 
 ```bash
-npx buron file glob "/wiki/sources/*/*.md" | xargs -I{} npx buron file read {} | grep -l "repo: <org>/<repo>"
+buron file glob "/wiki/sources/*/*.md" | xargs -I{} buron file read {} | grep -l "repo: <org>/<repo>"
 ```
 
-(Or just `npx buron file list /wiki/sources/cursor` etc. for each env — if all are empty / contain no files matching this repo, it's the first run.)
+(Or just `buron file list /wiki/sources/cursor` etc. for each env — if all are empty / contain no files matching this repo, it's the first run.)
 
 If first run, file an additional **baseline source** first. This gives Buron's curator a ground-state for the project so subsequent launches have context for "before / after". Use the same frontmatter shape with `source_kind: baseline` (instead of `changes`) and a slug like `<YYYY-MM-DD>-baseline.md`.
 
@@ -65,7 +65,7 @@ Body for the baseline:
 Push the baseline:
 
 ```bash
-npx buron file write /wiki/sources/<env>/<YYYY-MM-DD>-baseline.md \
+buron file write /wiki/sources/<env>/<YYYY-MM-DD>-baseline.md \
   --from-file .buron/sources/<env>/<YYYY-MM-DD>-baseline.md
 ```
 
@@ -187,7 +187,7 @@ for marketing. Surface them honestly.
 ## Step 4 — Push to Buron
 
 ```bash
-npx buron file write /wiki/sources/<env>/<YYYY-MM-DD>-<branch-slug>.md \
+buron file write /wiki/sources/<env>/<YYYY-MM-DD>-<branch-slug>.md \
   --from-file .buron/sources/<env>/<YYYY-MM-DD>-<branch-slug>.md
 ```
 

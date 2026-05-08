@@ -12,6 +12,16 @@ function isErrnoException(err: unknown): err is NodeJS.ErrnoException {
 }
 
 export function readAuth(): AuthData | null {
+  // CI / non-interactive environments: BURON_TOKEN takes precedence over
+  // any on-disk auth file. Lets workflows authenticate without the
+  // interactive `buron login` flow that writes auth.json. The email is
+  // surfaced for display only — set BURON_EMAIL alongside if you want a
+  // friendlier identifier in logs; otherwise it falls back to a marker.
+  const envToken = process.env.BURON_TOKEN;
+  if (envToken) {
+    return { token: envToken, email: process.env.BURON_EMAIL ?? "ci-runner" };
+  }
+
   const authPath = getAuthPath();
 
   let raw: string;

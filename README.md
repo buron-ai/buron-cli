@@ -21,7 +21,9 @@
 ### Installation
 
 ```bash
-npm i -g buron
+npm i -g @buron/cli
+# or
+pnpm add -g @buron/cli
 ```
 
 That's it. The CLI installs `buron` globally; per-project state lives in `.buron/` after `buron link`.
