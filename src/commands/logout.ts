@@ -1,6 +1,6 @@
-import { clearAuth, readAuth } from "../lib/auth.js";
 import { api } from "../lib/api.js";
-import { blank, error, info, success } from "../lib/ui.js";
+import { clearAuth, readAuth } from "../lib/auth.js";
+import { blank, info, success } from "../lib/ui.js";
 
 export async function logoutCommand(): Promise<void> {
   const auth = readAuth();

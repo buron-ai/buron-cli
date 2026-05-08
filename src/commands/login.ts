@@ -1,6 +1,6 @@
 import open from "open";
-import { readAuth, writeAuth } from "../lib/auth.js";
 import { api, isMockMode } from "../lib/api.js";
+import { readAuth, writeAuth } from "../lib/auth.js";
 import { blank, error, fatal, info, link, spinner, success } from "../lib/ui.js";
 
 const POLL_INTERVAL_MS = 2_000;
@@ -10,7 +10,7 @@ export async function loginCommand(): Promise<void> {
   const existing = readAuth();
   if (existing) {
     info(`Already logged in as ${existing.email}`);
-    info('Run `buron logout` first to switch accounts.');
+    info("Run `buron logout` first to switch accounts.");
     return;
   }
 

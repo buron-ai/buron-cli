@@ -22,19 +22,14 @@ function fail(message: string): never {
   process.exit(1);
 }
 
-async function resolveContent(opts: {
-  content?: string;
-  fromFile?: string;
-}): Promise<string> {
+async function resolveContent(opts: { content?: string; fromFile?: string }): Promise<string> {
   if (opts.content !== undefined) return opts.content;
   if (opts.fromFile) {
     return readFileSync(resolve(opts.fromFile), "utf-8");
   }
   const piped = await readStdin();
   if (!piped) {
-    fail(
-      "No content provided. Pass --content, --from-file, or pipe via stdin.",
-    );
+    fail("No content provided. Pass --content, --from-file, or pipe via stdin.");
   }
   return piped;
 }
@@ -45,12 +40,7 @@ export async function fileReadCommand(path: string): Promise<void> {
   try {
     const auth = requireAuth();
     const config = requireConfig();
-    const result = await api.files.read(
-      config.orgId,
-      config.teamId,
-      path,
-      auth.token,
-    );
+    const result = await api.files.read(config.orgId, config.teamId, path, auth.token);
     if (!result.found) {
       fail(`File not found: ${path}`);
     }
@@ -70,13 +60,7 @@ export async function fileWriteCommand(
     const auth = requireAuth();
     const config = requireConfig();
     const content = await resolveContent(options);
-    const result = await api.files.write(
-      config.orgId,
-      config.teamId,
-      path,
-      content,
-      auth.token,
-    );
+    const result = await api.files.write(config.orgId, config.teamId, path, content, auth.token);
     blank();
     success(`Wrote ${result.bytes} bytes → ${result.path}`);
   } catch (err) {
@@ -94,13 +78,7 @@ export async function fileAppendCommand(
     const auth = requireAuth();
     const config = requireConfig();
     const content = await resolveContent(options);
-    const result = await api.files.append(
-      config.orgId,
-      config.teamId,
-      path,
-      content,
-      auth.token,
-    );
+    const result = await api.files.append(config.orgId, config.teamId, path, content, auth.token);
     blank();
     success(`Appended → ${result.path} (${result.bytes} bytes total)`);
   } catch (err) {
@@ -114,12 +92,7 @@ export async function fileListCommand(directory?: string): Promise<void> {
   try {
     const auth = requireAuth();
     const config = requireConfig();
-    const result = await api.files.list(
-      config.orgId,
-      config.teamId,
-      auth.token,
-      directory,
-    );
+    const result = await api.files.list(config.orgId, config.teamId, auth.token, directory);
     if (result.files.length === 0) {
       blank();
       info(directory ? `No files in ${directory}` : "No files");
@@ -139,12 +112,7 @@ export async function fileGlobCommand(pattern: string): Promise<void> {
   try {
     const auth = requireAuth();
     const config = requireConfig();
-    const result = await api.files.glob(
-      config.orgId,
-      config.teamId,
-      pattern,
-      auth.token,
-    );
+    const result = await api.files.glob(config.orgId, config.teamId, pattern, auth.token);
     if (result.files.length === 0) {
       blank();
       info(`No files match ${pattern}`);
@@ -194,12 +162,7 @@ export async function fileDeleteCommand(path: string): Promise<void> {
   try {
     const auth = requireAuth();
     const config = requireConfig();
-    const result = await api.files.delete(
-      config.orgId,
-      config.teamId,
-      path,
-      auth.token,
-    );
+    const result = await api.files.delete(config.orgId, config.teamId, path, auth.token);
     blank();
     success(`Deleted: ${result.path}`);
   } catch (err) {
@@ -209,20 +172,11 @@ export async function fileDeleteCommand(path: string): Promise<void> {
 
 // ── move ─────────────────────────────────────────────────────────────
 
-export async function fileMoveCommand(
-  from: string,
-  to: string,
-): Promise<void> {
+export async function fileMoveCommand(from: string, to: string): Promise<void> {
   try {
     const auth = requireAuth();
     const config = requireConfig();
-    const result = await api.files.move(
-      config.orgId,
-      config.teamId,
-      from,
-      to,
-      auth.token,
-    );
+    const result = await api.files.move(config.orgId, config.teamId, from, to, auth.token);
     blank();
     success(`Moved: ${from} → ${result.path}`);
   } catch (err) {

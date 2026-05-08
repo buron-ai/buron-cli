@@ -2,11 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import LAUNCH_SKILL_TEMPLATE from "../templates/launch.md";
 import SETUP_GOOGLE_ADS_TRACKING_SKILL_TEMPLATE from "../templates/setup-google-ads-tracking.md";
-import {
-  type BuronSkill,
-  getSkillPath,
-  type SkillInstallLocation,
-} from "./paths.js";
+import { type BuronSkill, getSkillPath, type SkillInstallLocation } from "./paths.js";
 
 export const SKILLS: BuronSkill[] = [
   { name: "launch", template: LAUNCH_SKILL_TEMPLATE },

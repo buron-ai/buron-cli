@@ -1,9 +1,7 @@
-import { checkbox } from "@inquirer/prompts";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { checkbox } from "@inquirer/prompts";
 import { readAuth } from "../lib/auth.js";
 import { readConfig } from "../lib/config.js";
-import { linkCommand } from "./link.js";
-import { loginCommand } from "./login.js";
 import {
   getContextPath,
   getLaunchesDir,
@@ -16,6 +14,8 @@ import {
 import { installSkills, SKILLS } from "../lib/skills.js";
 import { blank, error, info, success, warn } from "../lib/ui.js";
 import { PRODUCT_CONTEXT_TEMPLATE } from "../templates/context.js";
+import { linkCommand } from "./link.js";
+import { loginCommand } from "./login.js";
 
 export async function setupCommand(): Promise<void> {
   try {
@@ -53,14 +53,7 @@ export async function setupCommand(): Promise<void> {
     // SKILL writes here before pushing via `buron file write`. Each editor /
     // CI environment gets its own subdirectory so files don't collide and
     // it's obvious where a source came from.
-    const SOURCE_ENVS: SourceEnv[] = [
-      "cursor",
-      "claude-code",
-      "copilot",
-      "codex",
-      "ci",
-      "agents",
-    ];
+    const SOURCE_ENVS: SourceEnv[] = ["cursor", "claude-code", "copilot", "codex", "ci", "agents"];
     for (const env of SOURCE_ENVS) {
       const dir = getSourcesDir(env);
       if (!existsSync(dir)) {

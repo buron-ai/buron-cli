@@ -45,13 +45,7 @@ export interface GenerateTokenResponse {
 }
 
 export interface ProjectStatusResponse {
-  status:
-    | "backlog"
-    | "planned"
-    | "in_progress"
-    | "paused"
-    | "done"
-    | "cancelled";
+  status: "backlog" | "planned" | "in_progress" | "paused" | "done" | "cancelled";
   assets?: Record<string, string>;
 }
 
@@ -277,11 +271,10 @@ export const api = {
       path: string,
       token: string,
     ): Promise<FileReadResponse> {
-      return request<FileReadResponse>(
-        "POST",
-        `/api/v1/teams/${teamId}/files/read`,
-        { body: { orgId, path }, token },
-      );
+      return request<FileReadResponse>("POST", `/api/v1/teams/${teamId}/files/read`, {
+        body: { orgId, path },
+        token,
+      });
     },
 
     async write(
@@ -292,11 +285,10 @@ export const api = {
       token: string,
       metadata?: Record<string, unknown>,
     ): Promise<FileWriteResponse> {
-      return request<FileWriteResponse>(
-        "POST",
-        `/api/v1/teams/${teamId}/files/write`,
-        { body: { orgId, path, content, metadata }, token },
-      );
+      return request<FileWriteResponse>("POST", `/api/v1/teams/${teamId}/files/write`, {
+        body: { orgId, path, content, metadata },
+        token,
+      });
     },
 
     async append(
@@ -306,11 +298,10 @@ export const api = {
       content: string,
       token: string,
     ): Promise<FileWriteResponse> {
-      return request<FileWriteResponse>(
-        "POST",
-        `/api/v1/teams/${teamId}/files/append`,
-        { body: { orgId, path, content }, token },
-      );
+      return request<FileWriteResponse>("POST", `/api/v1/teams/${teamId}/files/append`, {
+        body: { orgId, path, content },
+        token,
+      });
     },
 
     async list(
@@ -319,11 +310,10 @@ export const api = {
       token: string,
       directory?: string,
     ): Promise<FileListResponse> {
-      return request<FileListResponse>(
-        "POST",
-        `/api/v1/teams/${teamId}/files/list`,
-        { body: { orgId, directory }, token },
-      );
+      return request<FileListResponse>("POST", `/api/v1/teams/${teamId}/files/list`, {
+        body: { orgId, directory },
+        token,
+      });
     },
 
     async glob(
@@ -332,11 +322,10 @@ export const api = {
       pattern: string,
       token: string,
     ): Promise<FileListResponse> {
-      return request<FileListResponse>(
-        "POST",
-        `/api/v1/teams/${teamId}/files/glob`,
-        { body: { orgId, pattern }, token },
-      );
+      return request<FileListResponse>("POST", `/api/v1/teams/${teamId}/files/glob`, {
+        body: { orgId, pattern },
+        token,
+      });
     },
 
     async grep(
@@ -346,11 +335,10 @@ export const api = {
       token: string,
       directory?: string,
     ): Promise<FileGrepResponse> {
-      return request<FileGrepResponse>(
-        "POST",
-        `/api/v1/teams/${teamId}/files/grep`,
-        { body: { orgId, pattern, directory }, token },
-      );
+      return request<FileGrepResponse>("POST", `/api/v1/teams/${teamId}/files/grep`, {
+        body: { orgId, pattern, directory },
+        token,
+      });
     },
 
     async delete(
@@ -373,11 +361,10 @@ export const api = {
       to: string,
       token: string,
     ): Promise<{ path: string }> {
-      return request<{ path: string }>(
-        "POST",
-        `/api/v1/teams/${teamId}/files/move`,
-        { body: { orgId, from, to }, token },
-      );
+      return request<{ path: string }>("POST", `/api/v1/teams/${teamId}/files/move`, {
+        body: { orgId, from, to },
+        token,
+      });
     },
 
     async replace(
@@ -389,14 +376,10 @@ export const api = {
       token: string,
       replaceAll?: boolean,
     ): Promise<FileWriteResponse> {
-      return request<FileWriteResponse>(
-        "POST",
-        `/api/v1/teams/${teamId}/files/replace`,
-        {
-          body: { orgId, path, oldString, newString, replaceAll },
-          token,
-        },
-      );
+      return request<FileWriteResponse>("POST", `/api/v1/teams/${teamId}/files/replace`, {
+        body: { orgId, path, oldString, newString, replaceAll },
+        token,
+      });
     },
   },
 };

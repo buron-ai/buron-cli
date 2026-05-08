@@ -47,6 +47,5 @@ export function requireConfig(): ProjectConfig {
 }
 
 export function getApiUrl(): string {
-  const config = readConfig();
-  return config?.apiUrl ?? process.env.BURON_API_URL ?? DEFAULT_API_URL;
+  return process.env.BURON_API_URL ?? readConfig()?.apiUrl ?? DEFAULT_API_URL;
 }

@@ -1,14 +1,54 @@
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { confirm, select } from "@inquirer/prompts";
 import { requireAuth } from "../lib/auth.js";
 import { requireConfig } from "../lib/config.js";
-import { api } from "../lib/api.js";
 import { getRepoName } from "../lib/git.js";
-import { blank, bold, dim, error, info, link, spinner, success, warn } from "../lib/ui.js";
+import { blank, bold, error, info, link, success, warn } from "../lib/ui.js";
+import { CURSOR_LAUNCH_SCRIPT } from "../templates/cursor-launch-script.js";
+import { OPENAI_LAUNCH_SCRIPT } from "../templates/openai-launch-script.js";
 import { WORKFLOW_CLAUDE } from "../templates/workflow-claude.js";
 import { WORKFLOW_CURSOR } from "../templates/workflow-cursor.js";
+import { WORKFLOW_OPENAI } from "../templates/workflow-openai.js";
+
+type Agent = "claude-code" | "cursor" | "codex";
+
+interface AgentSpec {
+  label: string;
+  apiKeyName: string;
+  providerLabel: string;
+  consoleUrl: string | null;
+  workflow: string;
+  ciScript: string | null;
+}
+
+const AGENTS: Record<Agent, AgentSpec> = {
+  "claude-code": {
+    label: "Claude Code",
+    apiKeyName: "ANTHROPIC_API_KEY",
+    providerLabel: "Anthropic",
+    consoleUrl: "https://console.anthropic.com/settings/keys",
+    workflow: WORKFLOW_CLAUDE,
+    ciScript: null,
+  },
+  cursor: {
+    label: "Cursor",
+    apiKeyName: "CURSOR_API_KEY",
+    providerLabel: "Cursor",
+    consoleUrl: null,
+    workflow: WORKFLOW_CURSOR,
+    ciScript: CURSOR_LAUNCH_SCRIPT,
+  },
+  codex: {
+    label: "OpenAI Codex",
+    apiKeyName: "OPENAI_API_KEY",
+    providerLabel: "OpenAI",
+    consoleUrl: "https://platform.openai.com/api-keys",
+    workflow: WORKFLOW_OPENAI,
+    ciScript: OPENAI_LAUNCH_SCRIPT,
+  },
+};
 
 function hasGhCli(): boolean {
   try {
@@ -33,8 +73,8 @@ function getGhRepoName(): string | null {
 
 export async function setupCiCommand(): Promise<void> {
   try {
-    const auth = requireAuth();
-    const config = requireConfig();
+    requireAuth();
+    requireConfig();
     const ghAvailable = hasGhCli();
 
     blank();
@@ -53,44 +93,19 @@ export async function setupCiCommand(): Promise<void> {
       warn("Could not detect repository name");
     }
 
-    // Step 2: Generate BURON_TOKEN
-    const s = spinner("Generating BURON_TOKEN...");
-    s.start();
-    const tokenResult = await api.generateToken(config.orgId, config.teamId, auth.token);
-    s.stop();
-
-    // Step 3: Set secret
-    if (ghAvailable) {
-      try {
-        execSync(`gh secret set BURON_TOKEN --body "${tokenResult.token}"`, { stdio: "pipe" });
-        success("BURON_TOKEN secret set");
-      } catch {
-        warn("Failed to set BURON_TOKEN via gh CLI");
-        blank();
-        info("Add this secret manually:");
-        info(`  BURON_TOKEN: ${tokenResult.token}`);
-      }
-    } else {
-      blank();
-      info("Add these secrets to your repository:");
-      if (repoName) {
-        info(`  ${link(`https://github.com/${repoName}/settings/secrets/actions`)}`);
-      }
-      blank();
-      info(`  BURON_TOKEN:       ${tokenResult.token}`);
-    }
-
-    // Step 4: Choose agent
+    // Step 2: Choose agent
     blank();
-    const agent = await select({
+    const agent = await select<Agent>({
       message: "Which AI agent do you use in CI?",
       choices: [
         { name: "Claude Code", value: "claude-code" as const },
         { name: "Cursor", value: "cursor" as const },
+        { name: "OpenAI Codex", value: "codex" as const },
       ],
     });
+    const spec = AGENTS[agent];
 
-    // Step 5: Write workflow file
+    // Step 3: Write workflow file (and CI launch script if the agent uses an SDK)
     const workflowDir = join(process.cwd(), ".github", "workflows");
     const workflowPath = join(workflowDir, "buron.yml");
 
@@ -98,42 +113,73 @@ export async function setupCiCommand(): Promise<void> {
       mkdirSync(workflowDir, { recursive: true });
     }
 
-    const template = agent === "claude-code" ? WORKFLOW_CLAUDE : WORKFLOW_CURSOR;
-    writeFileSync(workflowPath, template, "utf-8");
+    writeFileSync(workflowPath, spec.workflow, "utf-8");
     success("Workflow file created at .github/workflows/buron.yml");
 
-    // Step 6: Guide API key setup
+    if (spec.ciScript) {
+      const ciDir = join(process.cwd(), ".buron", "ci");
+      const ciScriptPath = join(ciDir, "launch.ts");
+      if (!existsSync(ciDir)) {
+        mkdirSync(ciDir, { recursive: true });
+      }
+      writeFileSync(ciScriptPath, spec.ciScript, "utf-8");
+      success("CI launch script created at .buron/ci/launch.ts");
+    }
+
+    // Step 4: Set the agent's API key as a GitHub secret
     blank();
-    const apiKeyName = agent === "claude-code" ? "ANTHROPIC_API_KEY" : "CURSOR_API_KEY";
-    info(`One last step — add your API key as a GitHub secret:`);
+    info(`One last step — add your ${spec.providerLabel} API key as a GitHub secret:`);
     blank();
 
     if (ghAvailable) {
-      info(`  ${bold(`gh secret set ${apiKeyName}`)}`);
-      blank();
-      info(dim("(This will prompt you securely for the value)"));
+      const setNow = await confirm({
+        message: `Set ${spec.apiKeyName} now? (gh will prompt you for the value)`,
+        default: true,
+      });
+
+      if (setNow) {
+        try {
+          execFileSync("gh", ["secret", "set", spec.apiKeyName], { stdio: "inherit" });
+          success(`${spec.apiKeyName} secret set`);
+        } catch {
+          warn(`Failed to set ${spec.apiKeyName}.`);
+          info(`Try again with: ${bold(`gh secret set ${spec.apiKeyName}`)}`);
+        }
+      } else {
+        info(`When you're ready, run: ${bold(`gh secret set ${spec.apiKeyName}`)}`);
+      }
     } else {
-      info(`  ${apiKeyName}: <your ${agent === "claude-code" ? "Anthropic" : "Cursor"} API key>`);
+      info(`  ${spec.apiKeyName}: <your ${spec.providerLabel} API key>`);
+      if (spec.consoleUrl) {
+        info(`  Get one at ${link(spec.consoleUrl)}`);
+      }
     }
 
-    // Step 7: Offer to commit
+    // Step 5: Offer to commit
     blank();
+    const filesToCommit = spec.ciScript
+      ? ".github/workflows/buron.yml + .buron/ci/launch.ts"
+      : ".github/workflows/buron.yml";
+
     const shouldCommit = await confirm({
-      message: "Commit and push the workflow file?",
+      message: `Commit and push ${filesToCommit}?`,
       default: false,
     });
 
     if (shouldCommit) {
       try {
         execSync("git add .github/workflows/buron.yml", { stdio: "pipe" });
+        if (spec.ciScript) {
+          execSync("git add .buron/ci/launch.ts", { stdio: "pipe" });
+        }
         execSync('git commit -m "Add Buron CI workflow"', { stdio: "pipe" });
         execSync("git push", { stdio: "pipe" });
         success("Workflow committed and pushed");
       } catch {
-        warn("Failed to commit. The file is ready at .github/workflows/buron.yml");
+        warn("Failed to commit. Files are ready in your working tree.");
       }
     } else {
-      info("Workflow file is ready to commit when you're ready.");
+      info("Workflow files are ready to commit when you are.");
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

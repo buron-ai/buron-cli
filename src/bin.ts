@@ -10,15 +10,15 @@ import {
   fileReplaceCommand,
   fileWriteCommand,
 } from "./commands/file.js";
+import { linkCommand } from "./commands/link.js";
 import { loginCommand } from "./commands/login.js";
 import { logoutCommand } from "./commands/logout.js";
-import { linkCommand } from "./commands/link.js";
 import { setupCommand } from "./commands/setup.js";
 import { setupCiCommand } from "./commands/setup-ci.js";
 import { skillsUpdateCommand } from "./commands/skills.js";
 import { banner } from "./lib/ui.js";
 
-const VERSION = "0.2.0";
+const VERSION = process.env.BURON_VERSION ?? "dev";
 
 const program = new Command();
 
@@ -35,15 +35,9 @@ program
   .description("Authenticate with Buron (opens browser)")
   .action(loginCommand);
 
-program
-  .command("logout")
-  .description("Clear stored credentials")
-  .action(logoutCommand);
+program.command("logout").description("Clear stored credentials").action(logoutCommand);
 
-program
-  .command("link")
-  .description("Link the current repo to a Buron team")
-  .action(linkCommand);
+program.command("link").description("Link the current repo to a Buron team").action(linkCommand);
 
 program
   .command("setup")
@@ -55,23 +49,16 @@ program
   .description("Set up GitHub Actions for automated launches")
   .action(setupCiCommand);
 
-const skills = program
-  .command("skills")
-  .description("Manage installed Buron skills");
+const skills = program.command("skills").description("Manage installed Buron skills");
 
 skills
   .command("update")
   .description("Refresh installed skills with the latest templates")
   .action(skillsUpdateCommand);
 
-const file = program
-  .command("file")
-  .description("Read and write files in Buron's knowledge layer");
+const file = program.command("file").description("Read and write files in Buron's knowledge layer");
 
-file
-  .command("read <path>")
-  .description("Read a file by path")
-  .action(fileReadCommand);
+file.command("read <path>").description("Read a file by path").action(fileReadCommand);
 
 file
   .command("write <path>")
@@ -87,10 +74,7 @@ file
   .option("-f, --from-file <localPath>", "Read content from a local file")
   .action(fileAppendCommand);
 
-file
-  .command("list [directory]")
-  .description("List files in a directory")
-  .action(fileListCommand);
+file.command("list [directory]").description("List files in a directory").action(fileListCommand);
 
 file
   .command("glob <pattern>")
@@ -103,15 +87,9 @@ file
   .option("-d, --directory <dir>", "Limit search to this directory")
   .action(fileGrepCommand);
 
-file
-  .command("delete <path>")
-  .description("Delete a file")
-  .action(fileDeleteCommand);
+file.command("delete <path>").description("Delete a file").action(fileDeleteCommand);
 
-file
-  .command("move <from> <to>")
-  .description("Move or rename a file")
-  .action(fileMoveCommand);
+file.command("move <from> <to>").description("Move or rename a file").action(fileMoveCommand);
 
 file
   .command("replace <path>")

@@ -16,6 +16,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: \${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -27,8 +28,6 @@ jobs:
         with:
           anthropic_api_key: \${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
-            Read .buron/product-context.md for background on this project.
-
             Follow the /launch SKILL installed at .claude/skills/launch/SKILL.md.
             You're running in CI, so use env=ci as the destination prefix.
 

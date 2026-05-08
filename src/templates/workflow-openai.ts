@@ -1,4 +1,4 @@
-export const WORKFLOW_CURSOR = `name: Buron Launch
+export const WORKFLOW_OPENAI = `name: Buron Launch
 
 on:
   pull_request:
@@ -24,10 +24,10 @@ jobs:
           node-version: "20"
 
       - name: Install dependencies
-        run: npm install --no-save @cursor/sdk tsx
+        run: npm install --no-save @openai/agents tsx
 
       - name: File Buron source
         env:
-          CURSOR_API_KEY: \${{ secrets.CURSOR_API_KEY }}
+          OPENAI_API_KEY: \${{ secrets.OPENAI_API_KEY }}
         run: npx tsx .buron/ci/launch.ts
 `;
