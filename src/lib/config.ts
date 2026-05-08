@@ -10,7 +10,22 @@ export interface ProjectConfig {
   apiUrl: string;
 }
 
-const DEFAULT_API_URL = "https://app.buron.dev";
+const DEFAULT_API_URL = "https://app.buron.ai";
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
+
+function validateApiUrl(url: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new Error(`Invalid BURON_API_URL: ${url}`);
+  }
+  if (parsed.protocol === "https:") return url;
+  if (parsed.protocol === "http:" && LOCAL_HOSTS.has(parsed.hostname)) return url;
+  throw new Error(
+    `BURON_API_URL must use https:// (got ${parsed.protocol}//${parsed.hostname}). Only http://localhost is permitted for local development.`,
+  );
+}
 
 export function readConfig(): ProjectConfig | null {
   const configPath = getConfigPath();
@@ -47,6 +62,6 @@ export function requireConfig(): ProjectConfig {
 }
 
 export function getApiUrl(): string {
-  const config = readConfig();
-  return config?.apiUrl ?? process.env.BURON_API_URL ?? DEFAULT_API_URL;
+  const url = process.env.BURON_API_URL ?? readConfig()?.apiUrl ?? DEFAULT_API_URL;
+  return validateApiUrl(url);
 }

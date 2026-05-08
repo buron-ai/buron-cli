@@ -1,7 +1,7 @@
 import { select } from "@inquirer/prompts";
-import { requireAuth } from "../lib/auth.js";
 import { api, type Org } from "../lib/api.js";
-import { writeConfig, getApiUrl } from "../lib/config.js";
+import { requireAuth } from "../lib/auth.js";
+import { getApiUrl, writeConfig } from "../lib/config.js";
 import { getRemoteUrl, getRepoName, isGitRepo } from "../lib/git.js";
 import { blank, error, fatal, info, spinner, success } from "../lib/ui.js";
 
@@ -29,7 +29,7 @@ export async function linkCommand(): Promise<void> {
     const { orgs } = result;
 
     if (orgs.length === 0) {
-      fatal("No organizations found. Create one at app.buron.dev first.");
+      fatal("No organizations found. Create one at app.buron.ai first.");
     }
 
     let selectedOrg: Org;

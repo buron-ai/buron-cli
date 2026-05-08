@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { getAuthPath, getUserDir } from "./paths.js";
 
@@ -7,25 +7,42 @@ export interface AuthData {
   email: string;
 }
 
+function isErrnoException(err: unknown): err is NodeJS.ErrnoException {
+  return err instanceof Error && "code" in err;
+}
+
 export function readAuth(): AuthData | null {
   const authPath = getAuthPath();
 
-  if (!existsSync(authPath)) {
-    return null;
-  }
-
+  let raw: string;
   try {
-    const raw = readFileSync(authPath, "utf-8");
-    const data = JSON.parse(raw) as AuthData;
-
-    if (!data.token || !data.email) {
+    raw = readFileSync(authPath, "utf-8");
+  } catch (err) {
+    if (isErrnoException(err) && err.code === "ENOENT") {
       return null;
     }
-
-    return data;
-  } catch {
-    return null;
+    if (isErrnoException(err) && (err.code === "EACCES" || err.code === "EPERM")) {
+      throw new Error(`Cannot read auth file (${err.code}): ${authPath}`);
+    }
+    throw err;
   }
+
+  let data: AuthData;
+  try {
+    data = JSON.parse(raw) as AuthData;
+  } catch {
+    throw new Error(
+      `Auth file is corrupted: ${authPath}. Run \`buron logout\` then \`buron login\`.`,
+    );
+  }
+
+  if (!data.token || !data.email) {
+    throw new Error(
+      `Auth file is malformed: ${authPath}. Run \`buron logout\` then \`buron login\`.`,
+    );
+  }
+
+  return data;
 }
 
 export function writeAuth(data: AuthData): void {
@@ -33,10 +50,29 @@ export function writeAuth(data: AuthData): void {
   const dir = dirname(authPath);
 
   if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true });
+    mkdirSync(dir, { recursive: true, mode: 0o700 });
   }
 
-  writeFileSync(authPath, JSON.stringify(data, null, 2), "utf-8");
+  // Atomic write: tmp + rename. Prevents a partial file from being left behind
+  // on crash or power loss, which would lock the user out.
+  const tmpPath = `${authPath}.tmp.${process.pid}`;
+  try {
+    writeFileSync(tmpPath, JSON.stringify(data, null, 2), {
+      encoding: "utf-8",
+      mode: 0o600,
+    });
+    renameSync(tmpPath, authPath);
+  } catch (err) {
+    if (existsSync(tmpPath)) {
+      try {
+        rmSync(tmpPath);
+      } catch {}
+    }
+    if (isErrnoException(err) && (err.code === "EACCES" || err.code === "EPERM")) {
+      throw new Error(`Cannot write auth file (${err.code}): ${authPath}`);
+    }
+    throw err;
+  }
 }
 
 export function clearAuth(): void {

@@ -40,26 +40,6 @@ export interface LinkResponse {
   orgs: Org[];
 }
 
-export interface PushResponse {
-  projectId: string;
-  dashboardUrl: string;
-}
-
-export interface GenerateTokenResponse {
-  token: string;
-}
-
-export interface ProjectStatusResponse {
-  status:
-    | "backlog"
-    | "planned"
-    | "in_progress"
-    | "paused"
-    | "done"
-    | "cancelled";
-  assets?: Record<string, string>;
-}
-
 // ── Mock implementations ──
 
 const mock = {
@@ -87,21 +67,6 @@ const mock = {
         },
       ],
     };
-  },
-
-  push(): PushResponse {
-    return {
-      projectId: "proj_mock_001",
-      dashboardUrl: "https://app.buron.dev/projects/proj_mock_001",
-    };
-  },
-
-  generateToken(): GenerateTokenResponse {
-    return { token: "brnci_mock_xxx" };
-  },
-
-  projectStatus(): ProjectStatusResponse {
-    return { status: "done", assets: {} };
   },
 };
 
@@ -255,44 +220,5 @@ export const api = {
       body: { repoUrl, repoName },
       token,
     });
-  },
-
-  async push(
-    orgId: string,
-    teamId: string,
-    context: string,
-    launch: string | null,
-    token: string,
-  ): Promise<PushResponse> {
-    if (isMockMode()) return mock.push();
-    return request<PushResponse>("POST", `/api/v1/teams/${teamId}/push`, {
-      body: { orgId, context, launch },
-      token,
-    });
-  },
-
-  async generateToken(
-    orgId: string,
-    teamId: string,
-    token: string,
-  ): Promise<GenerateTokenResponse> {
-    if (isMockMode()) return mock.generateToken();
-    return request<GenerateTokenResponse>("POST", "/api/v1/tokens", {
-      body: { orgId, teamId },
-      token,
-    });
-  },
-
-  async projectStatus(
-    teamId: string,
-    projectId: string,
-    token: string,
-  ): Promise<ProjectStatusResponse> {
-    if (isMockMode()) return mock.projectStatus();
-    return request<ProjectStatusResponse>(
-      "GET",
-      `/api/v1/teams/${teamId}/projects/${projectId}/status`,
-      { token },
-    );
   },
 };

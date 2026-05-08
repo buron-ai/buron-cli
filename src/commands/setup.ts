@@ -1,10 +1,8 @@
-import { checkbox } from "@inquirer/prompts";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { checkbox } from "@inquirer/prompts";
 import { readAuth } from "../lib/auth.js";
 import { readConfig } from "../lib/config.js";
-import { linkCommand } from "./link.js";
-import { loginCommand } from "./login.js";
 import {
   getContextPath,
   getLaunchesDir,
@@ -15,6 +13,8 @@ import {
 import { blank, error, info, success, warn } from "../lib/ui.js";
 import { PRODUCT_CONTEXT_TEMPLATE } from "../templates/context.js";
 import { BURON_SKILL_TEMPLATE } from "../templates/skill.js";
+import { linkCommand } from "./link.js";
+import { loginCommand } from "./login.js";
 
 export async function setupCommand(): Promise<void> {
   try {
@@ -70,9 +70,7 @@ export async function setupCommand(): Promise<void> {
       for (const location of selectedTargets) {
         installEditorSupport(location);
       }
-      success(
-        `Installed Buron for ${selectedTargets.map((target) => target.label).join(", ")}`,
-      );
+      success(`Installed Buron for ${selectedTargets.map((target) => target.label).join(", ")}`);
     }
 
     blank();
