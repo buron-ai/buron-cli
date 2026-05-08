@@ -24,7 +24,8 @@ jobs:
 
       # prepublishOnly script in package.json runs typecheck + lint + build,
       # so we don't need to repeat them here. `npm publish` triggers it.
+      # Auth is via Trusted Publishing (OIDC) — the `id-token: write`
+      # permission above lets npm exchange a GitHub-issued JWT for a
+      # publish credential. No NPM_TOKEN secret needed.
       - name: Publish
         run: npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
