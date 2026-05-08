@@ -24,7 +24,9 @@ const program = new Command();
 
 program
   .name("buron")
-  .description("Headless interface to the Buron marketing platform — auth, link, file CRUD over the team's library, skill management, and CI bootstrap.")
+  .description(
+    "Headless interface to the Buron marketing platform — auth, link, file CRUD over the team's library, skill management, and CI bootstrap.",
+  )
   .version(VERSION)
   .hook("preAction", () => {
     banner(VERSION);

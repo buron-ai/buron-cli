@@ -1,6 +1,6 @@
 {
   "name": "buron",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Headless CLI for the Buron marketing platform. Connect your codebase, push code-change snapshots from your editor or CI, and drive the platform from any script.",
   "type": "module",
   "bin": {
