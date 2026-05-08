@@ -1,27 +1,21 @@
 ---
 name: launch
-description: Prepare a Buron launch for this repository. Use when the user asks for /launch, launch notes, launch kits, or asks to prepare a launch. Also suggest a launch when a significant user-facing feature is completed — not for refactors or fixes. On first run for a product, also bootstraps the product writeup and offers to backfill recent shipments.
+description: File a rich dump of what changed in this repo (PR / branch / shipment) as a Buron source. Use when the user asks for /launch, launch notes, launch kits, or asks to prepare a launch. Also suggest running it when a significant user-facing feature is completed — not for refactors or fixes.
 ---
 
 # Launch
 
-## How Buron uses these files
+## What this does
 
-Buron is a marketing platform. When a launch file is committed to Buron's knowledge layer (via the CLI's `file write` command), Buron's marketing agents read the file and the product context to set up campaigns, generate blog posts, changelogs, social posts, sales enablement, and other customer-facing assets.
+Dump everything you can see about what just changed (or is about to ship) into a single rich source file, push it to Buron, and exit.
 
-Your role is to provide accurate, specific, user-focused input. You are not writing marketing copy — the marketing agents handle positioning, tone, and messaging. Think of these files as a product brief handed to a marketing team: complete enough that they can write about the product without seeing the code, clean enough that nothing sensitive ends up in public content.
+You are not a marketer. You are not deciding which product this is. You are not deciding whether this is one launch or three. You are not writing copy. A launch is a *compiled* artifact — Buron's curator agent reads accumulated `source_kind: changes` sources for the team's products, resolves which product each one belongs to, clusters them into launches, and synthesises the marketing brief from there.
 
-The more concrete and specific your writing, the better the downstream output. Vague descriptions produce vague marketing.
-
-## Buron terminology
-
-- **Product writeup** (`/wiki/entities/products/<product-slug>.md` in Buron's knowledge layer): durable description of one product. One file per product. Read at the start of every launch; updated when the product genuinely evolves.
-- **Launch** (`/launches/<product-slug>/<YYYY-MM-DD-slug>.md` in Buron's knowledge layer): describes what shipped, for which product, on which date. Each launch triggers a marketing project on the Buron platform.
-- **Project**: the work order Buron creates from a launch — a set of tasks like blog post, changelog entry, social posts, sales enablement, paid strategy, and SEO research / content writing.
+Your only job: produce dense, traceable raw material with as much context as you can pull from inside this repo + GitHub. The source you file has `source_kind: changes` — a snapshot of what changed at this filing event. Many `changes` sources roll up into one launch.
 
 ## Sensitivity
 
-These files feed into public-facing materials. Silently exclude:
+Source content feeds downstream into public-facing materials. Silently exclude:
 
 - Security implementation details, vulnerability information, auth internals
 - Infrastructure, deployment configuration, database schemas
@@ -29,160 +23,156 @@ These files feed into public-facing materials. Silently exclude:
 - Internal tooling, build systems, CI/CD configuration
 - Anything the company would not want publicly visible
 
-Do not mention that content was excluded. Just leave it out.
+Don't mention that content was excluded. Just leave it out.
 
-## Step 1 — Resolve the product
+## Step 1 — Detect the environment
 
-Read the repo, pick a slug, proceed. Don't ask.
+Pick the destination prefix `<env>`:
+
+- `GITHUB_ACTIONS=true` → `ci`
+- Running from `.cursor/skills/` OR `CURSOR_AGENT` set → `cursor`
+- Running from `.claude/skills/` OR `CLAUDE_CODE` set → `claude-code`
+- Running from `.github/skills/` OR `GITHUB_COPILOT_CLI` set → `copilot`
+- Running from `.codex/skills/` OR `OPENAI_CODEX` set → `codex`
+- Otherwise → `agents`
+
+Destination path: `/wiki/sources/<env>/<YYYY-MM-DD>-<branch-slug>.md`. Local working copy: `.buron/sources/<env>/<YYYY-MM-DD>-<branch-slug>.md`.
+
+`<branch-slug>` is the current branch with the prefix stripped (`feat/foo-bar` → `foo-bar`). If on the default branch, use a short timestamp slug.
+
+## Step 2 — Gather everything
+
+Pull every reachable signal. Lift content **verbatim** wherever you can. Don't compress, summarise, or interpret.
+
+### Git
+
+- Detect base branch: `git remote show origin` → parse "HEAD branch", fall back to `main`
+- `git remote get-url origin` → repo URL
+- `git log <base>..HEAD --pretty=full` — full commit messages with bodies
+- `git diff <base>..HEAD --stat` — file-level summary
+- `git diff <base>..HEAD` — actual changes (skim for context, don't paste the whole diff)
+- Branch name and current HEAD SHA
+
+### GitHub (via `gh` if authenticated)
+
+- `gh pr view --json number,url,title,body,comments,reviews` — lift PR title, body, and every comment **verbatim with author attribution**
+- For each issue number referenced in the PR or commit messages: `gh issue view <n> --json title,body,comments` — lift body and comments verbatim
+- If the PR body contains screenshot / video / demo URLs, capture those URLs
+
+### Repo
+
+- `README.md`, `CHANGELOG.md`, `docs/`, `RFCs/` — lift sections that changed in this branch or describe what shipped
+- JSDoc and inline code comments around the changed paths — lift verbatim, cite file paths
+- Test file names and `describe` / `it` strings around the changed area (these are behaviour in English)
+- Feature flag names mentioned in the diff
+
+### Optional clustering signal
+
+If any of these are set, capture the value into the source frontmatter as `launch_id`. The curator uses this to merge multi-PR launches; if missing, the curator clusters heuristically.
+
+- `BURON_LAUNCH_ID` env var
+- A `launch_id: <slug>` line in the PR body (case-insensitive)
+- A `launch_id: <slug>` trailer in any commit message in this branch
+
+Don't ask the user about this. If the signal is present, use it. If not, leave it off.
+
+## Step 3 — Write the source file
+
+Local path: `.buron/sources/<env>/<YYYY-MM-DD>-<branch-slug>.md`
+
+### Frontmatter
+
+```yaml
+---
+title: <descriptive title — what shipped, in plain user language, derived from the PR title or branch name>
+type: source
+source_kind: changes
+env: <cursor | claude-code | copilot | codex | ci | agents>
+repo: <org/repo from git remote>
+branch: <branch-name>
+pr_url: <https://...>           # null if no PR yet
+pr_number: <int>                # null if no PR yet
+commit_range: <base>..<HEAD-sha>
+launch_id: <slug>               # OMIT if no signal was found in step 2
+created: <YYYY-MM-DD>
+---
+```
+
+Buron resolves which product this source belongs to from `repo` (or asks the user once during product onboarding). You don't pick a product slug.
+
+### Body
+
+Each section is a prompt to surface what you found. Write what you have. Skip sections that are empty rather than padding them.
+
+```markdown
+## What shipped
+
+Multi-paragraph user-facing narrative. If multiple capabilities shipped,
+each gets its own subsection with real detail — describe screens, entry
+points, what a user clicks and what happens. No compression.
+
+## PR / issue thread
+
+Verbatim PR title, body, and comments (with author attribution).
+Verbatim issue body and comments for any linked issue. Use blockquotes
+to make verbatim content clear.
+
+## Code-side context
+
+Commit messages with bodies. Verbatim JSDoc / code comments around
+changed paths. Test file behaviours (the names of test cases describe
+what the code does). Cite file paths.
+
+## Repo documentation references
+
+Sections of README / CHANGELOG / docs/ / RFCs that changed in this
+branch or describe what shipped. Verbatim where possible.
+
+## Edge cases and limits
+
+Feature flags this is gated behind. Beta vs GA status. Rollout plan if
+visible in PR or config. Known limitations. Who has access today vs
+later.
+
+## Quotes
+
+Anything from PR comments, issue threads, beta-tester references in
+commit messages, internal threads cited in the PR — verbatim with
+attribution.
+
+## Assets
+
+Screenshot paths inside the repo. Video / image URLs from the PR body.
+Demo URLs from the PR or README. Design file URLs if any are referenced.
+
+## Open questions / risks
+
+Things you noticed that aren't engineering decisions but might matter
+for marketing. Surface them honestly.
+```
+
+**Do not write a Summary / What's New / Who / Breaking section.** That's the curator's job, downstream.
+
+## Step 4 — Push to Buron
 
 ```bash
-npx buron file list /wiki/entities/products/
+npx buron file write /wiki/sources/<env>/<YYYY-MM-DD>-<branch-slug>.md \
+  --from-file .buron/sources/<env>/<YYYY-MM-DD>-<branch-slug>.md
 ```
 
-If a listed slug matches the repo, use it. Otherwise derive a kebab-case slug from `package.json` `name` (or the repo directory if no package.json) and use that. Move on.
+## Step 5 — Confirm and exit
 
-## Step 2 — Ensure the product writeup is populated
+Confirm:
+- The path the source landed at
+- That Buron's curator (`gtm:curate-launch`) will process this on its next run, resolve the product, and synthesise a launch brief from accumulated sources
 
-```bash
-npx buron file read /wiki/entities/products/<slug>.md
-```
+Exit. You don't poll. You don't wait for assets. The curator is async.
 
-Three cases:
+## Rules
 
-- **Populated and accurate.** Hold as the canonical product context, proceed to step 3.
-- **Populated but stale or thin** (missing capabilities you can see in the codebase, outdated audience description, missing recent surface area). Propose updates inline. On user confirm, write the refined version back via `npx buron file write /wiki/entities/products/<slug>.md --from-file <local-draft>`. Then proceed.
-- **Empty / placeholder / does not exist.** Run the **bootstrap path** below.
-
-### Bootstrap path (first-run for this product)
-
-Read the repo exhaustively to draft a complete product writeup before drafting any launch. Inputs to read:
-
-- `README.md`, `package.json` — what the product is, what it depends on
-- `app/marketing/` or `app/(marketing)/` and `public/` — landing copy, audience signals, positioning language
-- `app/` route structure — capability inventory (which surfaces exist)
-- Pricing pages and signup flows — motion (B2C ecommerce / B2C subscription / B2B self-serve / B2B sales-led / B2B hybrid)
-- Any `docs/`, `CHANGELOG.md`, or `apps/<name>/README.md` — what the team has already documented
-
-Draft a complete writeup with these sections:
-
-```
-# <Product name>
-
-## What it is
-One sentence. What does this product do?
-
-## Who it's for
-Audience, ICP, primary use case. Specifics over generics.
-
-## Capabilities
-Grouped by surface (### subheadings) if the product has multiple distinct areas (e.g. a web app, CLI, and API). One bullet per user-visible capability.
-
-## How it works
-The user journey from first contact to value realised. End-to-end, in their words.
-
-## Motion
-{B2C ecommerce | B2C subscription | B2B self-serve | B2B sales-led | B2B hybrid}. One line on why.
-
-## Status
-{alpha | beta | GA | sunset}. Date or quarter if relevant.
-```
-
-Show the draft to the user, ask for confirmation/edits, then write via `npx buron file write /wiki/entities/products/<slug>.md --from-file <local-draft>`. After confirmation, proceed to step 3.
-
-## Step 3 — First-run vs steady state
-
-```bash
-npx buron file list /launches/<slug>/
-```
-
-If the directory is empty (no prior launches for this product), offer the **backfill path** below. If non-empty, this is steady state — skip to step 4.
-
-### Backfill path (first-run for this product)
-
-The goal: capture the last few major user-facing shipments as historical launch artefacts so Buron has context on recent moves and can ground future content against what's already shipped. Then proceed to step 4 and draft the *current* launch on top.
-
-1. Pull recent merge commits and feature commits:
-
-   ```bash
-   git log --since="60 days ago" --merges --pretty=format:"%h %s"
-   git log --since="60 days ago" --pretty=format:"%h %s"
-   ```
-
-2. Cluster commits that build the same user-facing feature (multiple commits per shipment is normal). Title the cluster by the user-facing capability, not the implementation.
-
-3. Filter aggressively — keep only the user-facing items. Drop refactors, dependency bumps, lint, tests, infra, internal tooling, doc-only changes.
-
-4. Pick the top 5 most significant remaining clusters (offer to adjust the count or window if the user wants more / fewer).
-
-5. Show the user the proposed list — slug, date, one-line summary — and confirm before drafting.
-
-6. For each confirmed cluster:
-   - Draft a launch file using the same structure as a current launch (see step 4)
-   - Local draft path: `.buron/launches/<YYYY-MM-DD-slug>.md` (use the cluster's representative date — usually the merge date of the largest commit in the cluster)
-   - Commit via `npx buron file write /launches/<slug>/<YYYY-MM-DD-slug>.md --from-file <local-draft>`
-
-7. Once all backfilled launches are written, proceed to step 4 to draft the current launch.
-
-Backfilled launches land in the knowledge layer for context but should not trigger marketing campaigns retroactively. (Platform-side: the marketing-project trigger is being migrated and will gain a `backfill` flag check; for now the trigger is dormant on knowledge-layer writes.)
-
-## Step 4 — Draft the current launch
-
-1. Detect the default branch: run `git remote show origin` and parse "HEAD branch", fall back to `main`.
-2. Diff the current branch against the default branch.
-3. Synthesize the diff into user-facing changes — multiple commits that build one feature should be described as one change, not listed individually.
-4. Name the file using today's date and a short descriptive slug (e.g. `2026-04-02-device-auth.md`).
-5. Write a local draft to `.buron/launches/<YYYY-MM-DD-slug>.md` so the user can review and edit using the IDE's normal diff tools.
-
-### Launch file structure
-
-```
-# Launch: <descriptive title>
-
-## Summary
-What shipped, from the user's perspective. Describe features, not commits.
-Synthesize multiple commits into coherent changes.
-
-## What's New
-User-facing changes. What can users do now that they couldn't before?
-What changed in their experience? Group related changes.
-
-## Who This Affects
-Which users, roles, or use cases benefit from these changes.
-
-## Breaking Changes
-Changes requiring user action: migrations, API changes, deprecations,
-changed defaults. Write "None" if not applicable.
-```
-
-### What to include
-
-- Features and capabilities users can see or use
-- Changed behavior that affects user experience
-- New integrations or platform support
-- Performance improvements users would notice
-
-### What to exclude
-
-- Refactors with no user-facing impact
-- Dependency updates, build changes, test additions
-- Infrastructure or deployment changes
-- Code cleanup, linting fixes, internal tooling
-
-## Step 5 — Commit to Buron's knowledge layer
-
-Once the user has reviewed the local draft and is happy with it, commit it via the Buron CLI:
-
-```bash
-npx buron file write /launches/<slug>/<YYYY-MM-DD-slug>.md \
-  --from-file .buron/launches/<YYYY-MM-DD-slug>.md
-```
-
-`<slug>` is the product slug from step 1. The local `.buron/launches/<slug>.md` stays in the repo as a working copy.
-
-The platform-side workflow that creates the marketing project from this write is being migrated; for now a launch lands in the knowledge layer but the project may need to be created manually in the Buron app until the migration completes.
-
-## Step 6 — Confirm and exit
-
-Confirm what was written: the path(s) the launch(es) landed at, the product they're scoped to, and that the marketing project should appear on the Buron dashboard within a few minutes (when the platform trigger lands). For first-run flows, also confirm the product writeup was bootstrapped and how many historical launches were backfilled.
-
-Then exit.
+- Don't ask about the product. Buron resolves it from the repo.
+- Don't ask about launch_id. Pick up the signal if it's present, leave it off if not.
+- Don't write a marketing brief. Sources are raw; briefs are the curator's output.
+- Lift content **verbatim** wherever you can. Verbatim with attribution beats paraphrase.
+- Skip empty sections. Don't pad.
+- Sensitivity rules apply throughout.

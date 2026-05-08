@@ -3,10 +3,15 @@ import { join, resolve } from "node:path";
 
 export type SkillInstallTarget =
   | "agents"
-  | "claude"
+  | "claude-code"
   | "copilot"
   | "cursor"
   | "codex";
+
+// Where a source-kind=launch file gets filed in buron's library.
+// "ci" is added on top of the editor targets — it's an env source, not an
+// install target.
+export type SourceEnv = SkillInstallTarget | "ci";
 
 export interface SkillInstallLocation {
   id: SkillInstallTarget;
@@ -39,6 +44,12 @@ export function getLaunchesDir(cwd?: string): string {
   return join(getProjectDir(cwd), "launches");
 }
 
+// Local working directory for source files staged before pushing to buron.
+// Mirrors the destination shape: .buron/sources/<env>/ ↔ /wiki/sources/<env>/.
+export function getSourcesDir(env: SourceEnv, cwd?: string): string {
+  return join(getProjectDir(cwd), "sources", env);
+}
+
 export function resolveFromCwd(...segments: string[]): string {
   return resolve(process.cwd(), ...segments);
 }
@@ -54,7 +65,7 @@ export function getSkillInstallLocations(cwd?: string): SkillInstallLocation[] {
       skillsDir: join(root, ".cursor", "skills"),
     },
     {
-      id: "claude",
+      id: "claude-code",
       label: "Claude Code",
       detectPath: join(root, ".claude"),
       skillsDir: join(root, ".claude", "skills"),

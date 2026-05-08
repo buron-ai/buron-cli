@@ -85,7 +85,7 @@ export async function setupCiCommand(): Promise<void> {
     const agent = await select({
       message: "Which AI agent do you use in CI?",
       choices: [
-        { name: "Claude Code", value: "claude" as const },
+        { name: "Claude Code", value: "claude-code" as const },
         { name: "Cursor", value: "cursor" as const },
       ],
     });
@@ -98,13 +98,13 @@ export async function setupCiCommand(): Promise<void> {
       mkdirSync(workflowDir, { recursive: true });
     }
 
-    const template = agent === "claude" ? WORKFLOW_CLAUDE : WORKFLOW_CURSOR;
+    const template = agent === "claude-code" ? WORKFLOW_CLAUDE : WORKFLOW_CURSOR;
     writeFileSync(workflowPath, template, "utf-8");
     success("Workflow file created at .github/workflows/buron.yml");
 
     // Step 6: Guide API key setup
     blank();
-    const apiKeyName = agent === "claude" ? "ANTHROPIC_API_KEY" : "CURSOR_API_KEY";
+    const apiKeyName = agent === "claude-code" ? "ANTHROPIC_API_KEY" : "CURSOR_API_KEY";
     info(`One last step — add your API key as a GitHub secret:`);
     blank();
 
@@ -113,7 +113,7 @@ export async function setupCiCommand(): Promise<void> {
       blank();
       info(dim("(This will prompt you securely for the value)"));
     } else {
-      info(`  ${apiKeyName}: <your ${agent === "claude" ? "Anthropic" : "Cursor"} API key>`);
+      info(`  ${apiKeyName}: <your ${agent === "claude-code" ? "Anthropic" : "Cursor"} API key>`);
     }
 
     // Step 7: Offer to commit

@@ -9,7 +9,9 @@ import {
   getLaunchesDir,
   getProjectDir,
   getSkillInstallLocations,
+  getSourcesDir,
   type SkillInstallLocation,
+  type SourceEnv,
 } from "../lib/paths.js";
 import { installSkills, SKILLS } from "../lib/skills.js";
 import { blank, error, info, success, warn } from "../lib/ui.js";
@@ -47,6 +49,28 @@ export async function setupCommand(): Promise<void> {
       success("Created .buron/");
     }
 
+    // Sources directory mirrors buron's /wiki/sources/<env>/ — the /launch
+    // SKILL writes here before pushing via `buron file write`. Each editor /
+    // CI environment gets its own subdirectory so files don't collide and
+    // it's obvious where a source came from.
+    const SOURCE_ENVS: SourceEnv[] = [
+      "cursor",
+      "claude-code",
+      "copilot",
+      "codex",
+      "ci",
+      "agents",
+    ];
+    for (const env of SOURCE_ENVS) {
+      const dir = getSourcesDir(env);
+      if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true });
+      }
+    }
+    success("Created .buron/sources/{cursor,claude-code,copilot,codex,ci,agents}/");
+
+    // Keep launches/ as a working area for engineer-edited drafts (rare path);
+    // curator-written launches land in buron, not locally.
     if (!existsSync(launchesDir)) {
       mkdirSync(launchesDir, { recursive: true });
       success("Created .buron/launches/");
