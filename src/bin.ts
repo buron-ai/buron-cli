@@ -24,7 +24,7 @@ const program = new Command();
 
 program
   .name("buron")
-  .description("Connect your codebase to Buron and generate marketing assets when you ship")
+  .description("Headless interface to the Buron marketing platform — auth, link, file CRUD over the team's library, skill management, and CI bootstrap.")
   .version(VERSION)
   .hook("preAction", () => {
     banner(VERSION);

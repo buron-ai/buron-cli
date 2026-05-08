@@ -41,7 +41,7 @@ The conversion event you optimise toward is not a tracking implementation detail
 
 ## How Buron uses these files
 
-When you finish, the two markdown files in `.buron/` describe the user's conversion contract: which events count, what their values are, how they're attributed. Buron's Analytics workspace reads them as the primary metric definition; the Ads workspace reads them to ground bid recommendations. If the spec says activation is primary, the Ads workspace will not suggest optimising toward signup volume.
+When you finish, the conversion-spec markdown files in `.buron/` describe the user's conversion contract: which events count, what their values are, how they're attributed. Buron's Analytics workspace reads them as the primary metric definition; the Ads workspace reads them to ground bid recommendations. If the spec says activation is primary, the Ads workspace will not suggest optimising toward signup volume.
 
 You are not writing marketing copy. You are writing a measurement specification a senior consultant could hand to an engineering team. Be specific. Vague specs produce vague optimisation downstream.
 

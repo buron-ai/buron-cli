@@ -1,83 +1,115 @@
-# Buron CLI
+# buron-cli
 
-The developer CLI for [Buron](https://buron.ai) -- connect your codebase and generate marketing assets when you ship.
+## Getting Started
 
-## Install
+### Supported Editors
+
+| Editor | Status |
+|--------|--------|
+| [Cursor](https://www.cursor.com) | Supported |
+| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | Supported |
+| [GitHub Copilot](https://github.com/features/copilot) | Supported |
+| [OpenAI Codex](https://openai.com/index/codex/) | Supported |
+| Generic (`.agents/`) | Supported |
+
+### Prerequisites
+
+- A [Buron](https://buron.ai) account
+- Node.js 18+
+- One of the supported editors above (optional — the CLI works standalone)
+
+### Installation
 
 ```bash
 npm i -g buron
 ```
 
-Or run directly:
+That's it. The CLI installs `buron` globally; per-project state lives in `.buron/` after `buron link`.
+
+## What It Does
+
+`buron` is the headless interface to the [Buron](https://buron.ai) marketing platform. It connects your codebase to your Buron team and gives you programmatic access to everything the platform's agents operate on — read the team's knowledge layer, push code-change snapshots from your editor or CI, manage installed skills.
+
+## How Do I Use This?
 
 ```bash
-npx buron
+buron login          # Authenticate (opens browser)
+buron link           # Link this repo to a Buron team
+buron setup          # Scaffold .buron/ files and install editor skills
 ```
 
-## Quick Start
+After setup, run `/launch` in your editor when you ship something. The platform handles the rest — clustering snapshots into launches, producing a brief and tracker, kicking off channel-specific evaluations.
 
-```bash
-buron login
-buron link
-buron setup
-```
+You can also drive the platform headlessly from any script or CI job using `buron file` (read, write, search, organise files in the team's library).
 
-Then run `/launch` in your editor. The agent writes a launch context file to `.buron/launches/<uuid>.md`. Commit it as part of your PR — Buron picks up new launch files when they land in the repo.
+## Components
 
-## Commands
+### Editor Skills (2 skills)
 
-| Command | Description |
-|---------|-------------|
+Installed by `buron setup` into every editor folder you select.
+
+| Skill | Trigger | What it does |
+|-------|---------|--------------|
+| `/launch` | Run after shipping | Files a structured snapshot of what changed (full git diff, PR thread, code comments, screenshots) into the team's knowledge layer. Buron's curator clusters accumulated snapshots into a launch — a frozen brief plus a living tracker — and channel-specific evaluators (paid, content, sales enablement) propose concrete next steps. |
+| `/setup-google-ads-tracking` | Run on a new Google Ads integration | Walks you through a conversion-tracking spec — events, values, attribution — that Buron's Analytics and Ads workspaces read as the primary metric definition. |
+
+### Commands
+
+#### Auth + scoping
+
+| Command | Purpose |
+|---------|---------|
 | `buron login` | Authenticate with Buron (opens browser) |
 | `buron logout` | Clear stored credentials |
 | `buron link` | Link the current repo to a Buron team |
-| `buron setup` | Log in, link this repo, scaffold Buron files, and install editor skills |
-| `buron sync` | Refresh the launch skill in your installed editor folders |
-| `buron setup-ci` | Set up a GitHub Actions workflow for automated launches |
 
-## How It Works
+#### Bootstrap
 
-1. **Login** authenticates you via the browser -- no tokens to copy-paste.
-2. **Link** connects your repo to your Buron org and team. If you have multiple teams, you pick one.
-3. **Setup** creates a `.buron/` directory in your repo with a `product-context.md` file and installs the `launch` skill into your selected editor folders.
-4. When you're ready to ship, run `/launch` in your editor. The agent reads your git diff and writes a launch context file to `.buron/launches/<uuid>.md`.
-5. Commit the launch file as part of your PR (or set up CI with `buron setup-ci` to have it authored and committed automatically).
-6. Buron picks up new launch files via its GitHub App, reads the project context plus the launch context, and generates marketing assets -- blog posts, changelogs, social posts, and more.
+| Command | Purpose |
+|---------|---------|
+| `buron setup` | Log in, link the repo, scaffold `.buron/`, install editor skills |
+| `buron setup-ci` | Generate a GitHub Actions workflow that runs `/launch` automatically on every PR |
 
-Buron never sees your source code beyond what you commit. It only reads the two markdown files you've explicitly written into `.buron/`. The launch-authoring agent runs in your environment using your own AI provider.
+#### File CRUD over the team's library
 
-## What Gets Sent
+| Command | Purpose |
+|---------|---------|
+| `buron file read <path>` | Print a file's content |
+| `buron file write <path>` | Write a file (`--content`, `--from-file`, or stdin) |
+| `buron file append <path>` | Append to an existing file |
+| `buron file list [directory]` | List files in a directory |
+| `buron file glob <pattern>` | Find files matching a glob pattern |
+| `buron file grep <pattern>` | Search file contents (regex) |
+| `buron file delete <path>` | Delete a file |
+| `buron file move <from> <to>` | Move or rename a file |
+| `buron file replace <path>` | Find and replace within a file |
 
-Only two markdown files:
+#### Skills
 
-- `.buron/product-context.md` -- stable project context (product, audience, tone)
-- `.buron/launches/<date>-<slug>.md` -- per-launch context (what shipped, why it matters)
+| Command | Purpose |
+|---------|---------|
+| `buron skills update` | Refresh installed editor skills with the latest templates |
 
-That's it. No code, no git history, no secrets.
+## Usage
 
-## Skill updates
+After installing and running `buron setup`, you can drive the platform from your editor (`/launch`, `/setup-google-ads-tracking`) or directly from the shell using `buron file`:
 
-The launch skill written into `.cursor/skills/launch/SKILL.md`, `.claude/skills/launch/SKILL.md`, etc. is the prompt your editor's AI agent follows during `/launch`. We tune it over time. Run `buron sync` to fetch the latest skill and overwrite your local copies (it leaves any local edits alone and warns you instead). The fetch is best-effort with a 2-second timeout — offline or unreachable hosts fall back to the bundled copy.
+```bash
+# Read your team's company profile
+buron file read /wiki/company.md
 
-## Configuration
+# Find pages mentioning a competitor
+buron file grep "Loopio" --directory /wiki/entities/
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `BURON_API_URL` | `https://app.buron.ai` | Override the Buron API host. Useful for self-hosted backends or local development. |
-| `BURON_MOCK` | unset | Set to `1` to run all commands against an in-memory mock backend. Used for offline development and contributor onboarding. |
-| `BURON_NO_SKILL_REFRESH` | unset | Set to `1` to disable the skill update check on `buron sync`. |
+# Sync a daily report from CI into the Google Ads workspace
+generate-report > /tmp/report.md
+buron file write "/ads/google/reports/$(date +%Y-%m-%d).md" --from-file /tmp/report.md
 
-Auth and project state are stored in:
+# Pipe content from anywhere
+echo "# Q2 recap" | buron file write /wiki/analyses/q2-recap.md
+```
 
-- **`auth.json`** — your account token (created by `buron login`, removed by `buron logout`). Stored in your OS's config dir with `0600` permissions:
-  - macOS: `~/Library/Application Support/com.buron.cli/`
-  - Linux: `$XDG_CONFIG_HOME/com.buron.cli/` (defaults to `~/.config/com.buron.cli/`)
-  - Windows: `%APPDATA%\com.buron.cli\`
-- **`.buron/config.json`** — repo-to-team mapping, stored in your project root (created by `buron link`).
-
-`BURON_API_URL` must use `https://` unless the host is `localhost`, `127.0.0.1`, or `::1` for local development.
-
-## Development
+## Local Development
 
 ```bash
 git clone https://github.com/buron-ai/buron-cli.git
@@ -94,6 +126,14 @@ BURON_MOCK=1 buron login
 BURON_MOCK=1 buron link
 BURON_MOCK=1 buron setup
 ```
+
+## Reporting Issues
+
+If something doesn't work, file an issue on [GitHub](https://github.com/buron-ai/buron-cli/issues). Include:
+
+- What you were trying to do
+- What command you ran (and its output)
+- Which editor / CI environment you were in
 
 ## License
 
