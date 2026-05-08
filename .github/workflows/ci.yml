@@ -16,8 +16,13 @@ jobs:
           node-version: "20"
           cache: "npm"
 
+      # `npm install` (not `npm ci`) so biome's platform-specific
+      # optional dependency (@biomejs/cli-linux-x64) gets installed on
+      # the linux runner even when package-lock.json was generated on
+      # macOS. `npm ci` is stricter and skips optional deps the lock
+      # didn't capture, which trips biome.
       - name: Install
-        run: npm ci
+        run: npm install
 
       - name: Typecheck
         run: npm run typecheck
