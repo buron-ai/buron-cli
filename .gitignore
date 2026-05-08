@@ -10,3 +10,8 @@ dist/
 .claude/
 .cursor/
 .obsidian/
+---
+# Keep lockfile out of the repo — biome's optionalDependencies need to
+# resolve at install time per platform, and a macOS-generated lockfile
+# breaks the Linux CI runner's biome install.
+package-lock.json
