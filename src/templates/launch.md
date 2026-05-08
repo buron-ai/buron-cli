@@ -40,6 +40,37 @@ Destination path: `/wiki/sources/<env>/<YYYY-MM-DD>-<branch-slug>.md`. Local wor
 
 `<branch-slug>` is the current branch with the prefix stripped (`feat/foo-bar` → `foo-bar`). If on the default branch, use a short timestamp slug.
 
+## Step 1a — First-time baseline (only on the first run for this repo)
+
+Before filing the changes source for the current PR, check whether Buron has any prior sources for this repo:
+
+```bash
+npx buron file glob "/wiki/sources/*/*.md" | xargs -I{} npx buron file read {} | grep -l "repo: <org>/<repo>"
+```
+
+(Or just `npx buron file list /wiki/sources/cursor` etc. for each env — if all are empty / contain no files matching this repo, it's the first run.)
+
+If first run, file an additional **baseline source** first. This gives Buron's curator a ground-state for the project so subsequent launches have context for "before / after". Use the same frontmatter shape with `source_kind: baseline` (instead of `changes`) and a slug like `<YYYY-MM-DD>-baseline.md`.
+
+Body for the baseline:
+
+- **Project overview** — what the product is, derived from README, package.json, marketing pages, app routes. The same shape the curator would otherwise have to derive on its own.
+- **Current capabilities** — every user-facing capability you can identify in the repo today. Group by surface if there are distinct areas. Be thorough.
+- **How it works** — end-to-end user journey, in user terms.
+- **Tech surface** — at a high level (web app, mobile, API, CLI, etc.) — not implementation detail.
+- **Recent shipping cadence** — `git log --since="90 days ago" --pretty=format:"%h %s"` summarised into themes (don't list every commit). What's been shipped in the last quarter, broadly.
+- **Known assets** — README links, demo URLs, marketing pages, video assets — anything the curator might reuse.
+- **Open questions / context gaps** — what you couldn't determine from the repo alone (pricing, customer count, market positioning) so the curator knows what to ask the user later.
+
+Push the baseline:
+
+```bash
+npx buron file write /wiki/sources/<env>/<YYYY-MM-DD>-baseline.md \
+  --from-file .buron/sources/<env>/<YYYY-MM-DD>-baseline.md
+```
+
+Then continue with the current changes source (steps 2-5 below). The two sources land separately in Buron — the curator treats `baseline` as the ground-state and `changes` as the delta.
+
 ## Step 2 — Gather everything
 
 Pull every reachable signal. Lift content **verbatim** wherever you can. Don't compress, summarise, or interpret.
