@@ -1,7 +1,7 @@
 {
   "name": "buron",
   "version": "0.2.0",
-  "description": "CLI for Buron — connect your codebase, generate marketing assets when you ship",
+  "description": "Headless CLI for the Buron marketing platform. Connect your codebase, push code-change snapshots from your editor or CI, and drive the platform from any script.",
   "type": "module",
   "bin": {
     "buron": "./dist/bin.js"
@@ -21,8 +21,16 @@
     "buron",
     "cli",
     "marketing",
-    "changelog",
-    "developer-tools"
+    "ai-marketing",
+    "agentic-marketing",
+    "product-marketing",
+    "launch",
+    "knowledge-management",
+    "developer-tools",
+    "claude-code",
+    "cursor",
+    "github-copilot",
+    "openai-codex"
   ],
   "license": "MIT",
   "homepage": "https://buron.ai",
