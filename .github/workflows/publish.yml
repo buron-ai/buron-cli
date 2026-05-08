@@ -15,8 +15,14 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "lts/*"
           registry-url: "https://registry.npmjs.org"
+
+      # Trusted Publishing requires npm 11.5.1+ for the OIDC →
+      # publish-credential exchange. lts/* might still ship with npm 10
+      # (Node 22 LTS does), so bump explicitly to guarantee 11+.
+      - name: Upgrade npm
+        run: npm install -g npm@latest
 
       # `npm install` (not `npm ci`) — see ci.yml for rationale.
       - name: Install
