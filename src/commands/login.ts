@@ -10,7 +10,7 @@ export async function loginCommand(): Promise<void> {
   const existing = readAuth();
   if (existing) {
     info(`Already logged in as ${existing.email}`);
-    info("Run `buron logout` first to switch accounts.");
+    info("Run `buron logout` first to switch accounts");
     return;
   }
 
@@ -57,21 +57,21 @@ export async function loginCommand(): Promise<void> {
 
       if (poll.status === "denied") {
         s.stop();
-        fatal("Access denied. The device was not authorized.");
+        fatal("Access denied. This device wasn't approved — try logging in again");
       }
 
       if (poll.status === "expired") {
         s.stop();
-        fatal("Code expired. Run `buron login` to try again.");
+        fatal("Code expired. Run `buron login` to try again");
       }
     }
 
     s.stop();
-    fatal("Authentication timed out. Run `buron login` to try again.");
+    fatal("Login timed out. Run `buron login` to try again");
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     blank();
-    error(`Login failed: ${message}`);
+    error(`Couldn't log in: ${message}`);
     process.exit(1);
   }
 }

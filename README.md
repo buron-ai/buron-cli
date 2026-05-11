@@ -1,8 +1,8 @@
 # buron-cli
 
-## Getting Started
+## Getting started
 
-### Supported Editors
+### Supported editors
 
 | Editor | Status |
 |--------|--------|
@@ -26,42 +26,50 @@ npm i -g @buron/cli
 pnpm add -g @buron/cli
 ```
 
-That's it. The CLI installs `buron` globally; per-project state lives in `.buron/` after `buron link`.
+That's it. The CLI installs `buron` globally; per-project state lives in `.buron/` after you run `buron link`.
 
-## What It Does
+## Why
 
-`buron` is the headless interface to the [Buron](https://buron.ai) marketing platform. It connects your codebase to your Buron team and gives you programmatic access to everything the platform's agents operate on — read the team's knowledge layer, push code-change snapshots from your editor or CI, manage installed skills.
+Marketing context lives in pull requests, commit messages, and the heads of the developers who wrote the code. By the time someone asks "what did we ship?", that context has decayed — changelogs are incomplete, blog posts are delayed, and half of what ships never gets announced.
 
-## How Do I Use This?
+`buron` captures that context at the moment it's freshest. Run `/launch` in your editor right after shipping and the AI agent reads the diff, PR thread, commit history, and code comments — everything you'd otherwise explain in a meeting. That structured snapshot goes to Buron, where a project-manager agent classifies the launch and domain agents take it from there: content agents generate changelog entries, blog posts, and social threads; the Google Ads agent updates campaigns, adjusts bids, and creates conversion actions tied to what you shipped. From there, Buron tracks performance across channels so you can see what's working and what isn't. The developer never writes a brief. The marketer never waits for one.
+
+You don't have to run `/launch` by hand every time. Automate it:
+
+- **CI** — run `buron setup-ci` to generate a GitHub Actions workflow that files a source on every PR
+- **Claude Code** — set up a [routine](https://docs.anthropic.com/en/docs/claude-code/routines) that runs `/launch` on a schedule or trigger. If Buron's MCP server is connected, the CLI is already authenticated
+- **Codex / Cursor** — use their task or automation features to invoke `/launch` after merges
+
+## Quick start
 
 ```bash
-buron login          # Authenticate (opens browser)
+buron login          # Log in (opens browser)
 buron link           # Link this repo to a Buron team
-buron setup          # Scaffold .buron/ files and install editor skills
+buron setup          # Create .buron/ files and install editor skills
 ```
 
-After setup, run `/launch` in your editor when you ship something. The platform handles the rest — clustering snapshots into launches, producing a brief and tracker, kicking off channel-specific evaluations.
+After setup, run `/launch` in your editor when you ship. Buron handles the rest — clustering snapshots into launches, generating content, and surfacing finished assets in the dashboard.
 
-You can also drive the platform headlessly from any script or CI job using `buron file` (read, write, search, organise files in the team's library).
+You can also read, write, and search files in your team's library from any script or CI job using `buron file`.
 
 ## Components
 
-### Editor Skills (2 skills)
+### Editor skills
 
 Installed by `buron setup` into every editor folder you select.
 
 | Skill | Trigger | What it does |
 |-------|---------|--------------|
-| `/launch` | Run after shipping | Files a structured snapshot of what changed (full git diff, PR thread, code comments, screenshots) into the team's knowledge layer. Buron's curator clusters accumulated snapshots into a launch — a frozen brief plus a living tracker — and channel-specific evaluators (paid, content, sales enablement) propose concrete next steps. |
-| `/setup-google-ads-tracking` | Run on a new Google Ads integration | Walks you through a conversion-tracking spec — events, values, attribution — that Buron's Analytics and Ads workspaces read as the primary metric definition. |
+| `/launch` | Run after shipping | Captures what changed (diff, PR thread, code comments, screenshots) and pushes it to Buron. A PM agent classifies the launch tier, content agents generate assets (changelog, blog post, social threads), the Google Ads agent updates campaigns and conversion tracking, and Buron tracks performance across channels. |
+| `/setup-google-ads-tracking` | Run on a new Google Ads integration | Walks you through a conversion-tracking spec — events, values, attribution — that Buron's analytics and ads workspaces read as the primary metric definition. |
 
 ### Commands
 
-#### Auth + scoping
+#### Auth and scoping
 
 | Command | Purpose |
 |---------|---------|
-| `buron login` | Authenticate with Buron (opens browser) |
+| `buron login` | Log in to Buron (opens browser) |
 | `buron logout` | Clear stored credentials |
 | `buron link` | Link the current repo to a Buron team |
 
@@ -69,10 +77,10 @@ Installed by `buron setup` into every editor folder you select.
 
 | Command | Purpose |
 |---------|---------|
-| `buron setup` | Log in, link the repo, scaffold `.buron/`, install editor skills |
-| `buron setup-ci` | Generate a GitHub Actions workflow that runs `/launch` automatically on every PR |
+| `buron setup` | Log in, link the repo, create `.buron/`, install editor skills |
+| `buron setup-ci` | Generate a GitHub Actions workflow that runs `/launch` on every PR |
 
-#### File CRUD over the team's library
+#### File operations
 
 | Command | Purpose |
 |---------|---------|
@@ -81,10 +89,10 @@ Installed by `buron setup` into every editor folder you select.
 | `buron file append <path>` | Append to an existing file |
 | `buron file list [directory]` | List files in a directory |
 | `buron file glob <pattern>` | Find files matching a glob pattern |
-| `buron file grep <pattern>` | Search file contents (regex) |
+| `buron file grep <pattern>` | Search file contents by regex |
 | `buron file delete <path>` | Delete a file |
 | `buron file move <from> <to>` | Move or rename a file |
-| `buron file replace <path>` | Find and replace within a file |
+| `buron file replace <path>` | Find and replace text in a file |
 
 #### Skills
 
@@ -94,7 +102,7 @@ Installed by `buron setup` into every editor folder you select.
 
 ## Usage
 
-After installing and running `buron setup`, you can drive the platform from your editor (`/launch`, `/setup-google-ads-tracking`) or directly from the shell using `buron file`:
+After installing and running `buron setup`, drive the platform from your editor (`/launch`, `/setup-google-ads-tracking`) or from the shell with `buron file`:
 
 ```bash
 # Read your team's company profile
@@ -111,7 +119,7 @@ buron file write "/ads/google/reports/$(date +%Y-%m-%d).md" --from-file /tmp/rep
 echo "# Q2 recap" | buron file write /wiki/analyses/q2-recap.md
 ```
 
-## Local Development
+## Local development
 
 ```bash
 git clone https://github.com/buron-ai/buron-cli.git
@@ -129,13 +137,13 @@ BURON_MOCK=1 buron link
 BURON_MOCK=1 buron setup
 ```
 
-## Reporting Issues
+## Reporting issues
 
 If something doesn't work, file an issue on [GitHub](https://github.com/buron-ai/buron-cli/issues). Include:
 
 - What you were trying to do
 - What command you ran (and its output)
-- Which editor / CI environment you were in
+- Which editor or CI environment you were in
 
 ## License
 

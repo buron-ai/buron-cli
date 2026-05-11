@@ -6,19 +6,19 @@ export const PRODUCT_CONTEXT_TEMPLATE = `# Product Context
 ## Problem
 <!-- What problem does this solve? What does the status quo look like without it? -->
 
-## Target Users
+## Target users
 <!-- Who uses this? Roles, company profiles, use cases. Be specific. -->
 
 ## Capabilities
 <!-- What can users do with this product? List concrete functional capabilities. -->
 
-## Product Details
+## Product details
 <!-- Named features, supported integrations and data sources, available commands or API endpoints, supported platforms and environments, configuration options. List every specific item by name. -->
 
-## How It Works
+## How it works
 <!-- How do users interact with the product? Key workflows, interfaces, interaction model. -->
 
-## Integrations & Platform
+## Integrations and platform
 <!-- What does it connect to? Supported platforms, languages, services. -->
 
 ## Differentiation

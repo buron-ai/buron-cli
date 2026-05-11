@@ -9,7 +9,7 @@ export async function skillsUpdateCommand(): Promise<void> {
     const config = readConfig();
     if (!config) {
       blank();
-      error("Not linked. Run `buron setup` first.");
+      error("Not linked. Run `buron setup` first");
       process.exit(1);
     }
 
@@ -18,8 +18,8 @@ export async function skillsUpdateCommand(): Promise<void> {
 
     if (detected.length === 0) {
       blank();
-      warn("No editor folders detected (.claude, .cursor, .github, .codex, .agents).");
-      info("Run `buron setup` to pick which editors to install into.");
+      warn("No editor folders detected (.claude, .cursor, .github, .codex, .agents)");
+      info("Run `buron setup` to pick which editors to install into");
       return;
     }
 
@@ -33,7 +33,7 @@ export async function skillsUpdateCommand(): Promise<void> {
 
     blank();
     success(`Updated: ${SKILLS.map((s) => s.name).join(", ")}`);
-    info("Restart your Claude Code / Cursor session for skill changes to take effect.");
+    info("Restart your Claude Code or Cursor session for changes to take effect");
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     blank();

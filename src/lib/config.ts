@@ -41,7 +41,7 @@ export function writeConfig(config: ProjectConfig): void {
 export function requireConfig(): ProjectConfig {
   const config = readConfig();
   if (!config) {
-    throw new Error("Not linked. Run `buron link` first.");
+    throw new Error("Not linked. Run `buron link` first");
   }
   return config;
 }

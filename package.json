@@ -1,7 +1,7 @@
 {
   "name": "@buron/cli",
   "version": "0.2.5",
-  "description": "Headless CLI for the Buron marketing platform. Connect your codebase, push code-change snapshots from your editor or CI, and drive the platform from any script.",
+  "description": "Turn code changes into launch-ready marketing. Capture what you ship, and let Buron's agents generate content, update campaigns, and track performance.",
   "type": "module",
   "bin": {
     "buron": "./dist/bin.js"

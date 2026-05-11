@@ -1,5 +1,14 @@
 import { Command } from "commander";
 import {
+  dashboardsListCommand,
+  dashboardsRunCommand,
+  integrationCommand,
+  queriesCreateCommand,
+  queriesListCommand,
+  queriesRunCommand,
+  queryCommand,
+} from "./commands/data.js";
+import {
   fileAppendCommand,
   fileDeleteCommand,
   fileGlobCommand,
@@ -25,7 +34,7 @@ const program = new Command();
 program
   .name("buron")
   .description(
-    "Headless interface to the Buron marketing platform — auth, link, file CRUD over the team's library, skill management, and CI bootstrap.",
+    "Turn code changes into launch-ready marketing — capture what you ship, and let Buron generate the assets.",
   )
   .version(VERSION)
   .hook("preAction", () => {
@@ -34,7 +43,7 @@ program
 
 program
   .command("login")
-  .description("Authenticate with Buron (opens browser)")
+  .description("Log in to Buron (opens browser)")
   .action(loginCommand);
 
 program.command("logout").description("Clear stored credentials").action(logoutCommand);
@@ -43,22 +52,22 @@ program.command("link").description("Link the current repo to a Buron team").act
 
 program
   .command("setup")
-  .description("Log in, link this repo, scaffold Buron files, and install editor skills")
+  .description("Log in, link this repo, create Buron files, and install editor skills")
   .action(setupCommand);
 
 program
   .command("setup-ci")
-  .description("Set up GitHub Actions for automated launches")
+  .description("Set up GitHub Actions to run launches automatically")
   .action(setupCiCommand);
 
-const skills = program.command("skills").description("Manage installed Buron skills");
+const skills = program.command("skills").description("Manage installed skills");
 
 skills
   .command("update")
   .description("Refresh installed skills with the latest templates")
   .action(skillsUpdateCommand);
 
-const file = program.command("file").description("Read and write files in Buron's knowledge layer");
+const file = program.command("file").description("Read and write files in your team's library");
 
 file.command("read <path>").description("Read a file by path").action(fileReadCommand);
 
@@ -85,7 +94,7 @@ file
 
 file
   .command("grep <pattern>")
-  .description("Search file contents for a regex pattern")
+  .description("Search file contents by regex")
   .option("-d, --directory <dir>", "Limit search to this directory")
   .action(fileGrepCommand);
 
@@ -95,10 +104,68 @@ file.command("move <from> <to>").description("Move or rename a file").action(fil
 
 file
   .command("replace <path>")
-  .description("Find and replace a string within a file")
+  .description("Find and replace text in a file")
   .requiredOption("-o, --old <text>", "String to find")
   .requiredOption("-n, --new <text>", "Replacement string")
   .option("-a, --all", "Replace all occurrences (default: first only)")
   .action(fileReplaceCommand);
+
+// ── query ───────────────────────────────────────────────────────────
+
+program
+  .command("query <queryString>")
+  .description("Execute an ad-hoc query against a connected data source")
+  .requiredOption("-s, --source <source>", "Query source (e.g. gaql)")
+  .option("--customer-id <id>", "Customer ID (source-specific)")
+  .option("--from <date>", "Start date (YYYY-MM-DD)")
+  .option("--to <date>", "End date (YYYY-MM-DD)")
+  .action(queryCommand);
+
+// ── queries ─────────────────────────────────────────────────────────
+
+const queries = program.command("queries").description("Manage saved queries");
+
+queries
+  .command("list")
+  .description("List saved queries")
+  .option("-s, --source <source>", "Filter by source")
+  .action(queriesListCommand);
+
+queries
+  .command("create <name>")
+  .description("Create a saved query")
+  .requiredOption("-s, --source <source>", "Query source (e.g. gaql)")
+  .requiredOption("-q, --query <queryString>", "The query string")
+  .option("--config <json>", "Chart/display config as JSON")
+  .action(queriesCreateCommand);
+
+queries
+  .command("run <id>")
+  .description("Execute a saved query and return fresh results")
+  .action(queriesRunCommand);
+
+// ── dashboards ──────────────────────────────────────────────────────
+
+const dashboards = program.command("dashboards").description("View and run dashboards");
+
+dashboards
+  .command("list")
+  .description("List available dashboards")
+  .action(dashboardsListCommand);
+
+dashboards
+  .command("run <id>")
+  .description("Run a dashboard for a date range")
+  .requiredOption("--from <date>", "Start date (YYYY-MM-DD)")
+  .requiredOption("--to <date>", "End date (YYYY-MM-DD)")
+  .option("--fresh", "Bypass cache")
+  .action(dashboardsRunCommand);
+
+// ── integration ─────────────────────────────────────────────────────
+
+program
+  .command("integration <provider>")
+  .description("Check connection status of an integration")
+  .action(integrationCommand);
 
 program.parse();

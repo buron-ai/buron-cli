@@ -83,7 +83,7 @@ export async function setupCiCommand(): Promise<void> {
     if (ghAvailable) {
       success("GitHub CLI detected");
     } else {
-      warn("GitHub CLI not found — some steps will need to be done manually");
+      warn("GitHub CLI not found — you'll need to do some steps manually");
     }
 
     const repoName = ghAvailable ? getGhRepoName() : getRepoName();
@@ -128,14 +128,14 @@ export async function setupCiCommand(): Promise<void> {
 
     // Step 4: Set the agent's API key as a GitHub secret
     blank();
-    info(`Two GitHub secrets to set so the workflow can run:`);
+    info("2 GitHub secrets to set so the workflow can run:");
     blank();
 
     if (ghAvailable) {
       // Buron token first — required for the CLI to authenticate without
       // running `buron login` (no interactive flow in CI).
       info(
-        "BURON_TOKEN is your Buron account token. Find it in ~/Library/Application Support/com.buron.cli/auth.json (macOS), $XDG_CONFIG_HOME/com.buron.cli/auth.json (Linux), or %APPDATA%\\\\com.buron.cli\\\\auth.json (Windows) under the 'token' field.",
+        "BURON_TOKEN is your Buron account token. Find it in ~/Library/Application Support/com.buron.cli/auth.json (macOS), $XDG_CONFIG_HOME/com.buron.cli/auth.json (Linux), or %APPDATA%\\\\com.buron.cli\\\\auth.json (Windows) under the 'token' field",
       );
       blank();
 
@@ -149,7 +149,7 @@ export async function setupCiCommand(): Promise<void> {
           execFileSync("gh", ["secret", "set", "BURON_TOKEN"], { stdio: "inherit" });
           success("BURON_TOKEN secret set");
         } catch {
-          warn("Failed to set BURON_TOKEN.");
+          warn("Couldn't set BURON_TOKEN");
           info(`Try again with: ${bold("gh secret set BURON_TOKEN")}`);
         }
       } else {
@@ -168,7 +168,7 @@ export async function setupCiCommand(): Promise<void> {
           execFileSync("gh", ["secret", "set", spec.apiKeyName], { stdio: "inherit" });
           success(`${spec.apiKeyName} secret set`);
         } catch {
-          warn(`Failed to set ${spec.apiKeyName}.`);
+          warn(`Couldn't set ${spec.apiKeyName}`);
           info(`Try again with: ${bold(`gh secret set ${spec.apiKeyName}`)}`);
         }
       } else {
@@ -203,10 +203,10 @@ export async function setupCiCommand(): Promise<void> {
         execSync("git push", { stdio: "pipe" });
         success("Workflow committed and pushed");
       } catch {
-        warn("Failed to commit. Files are ready in your working tree.");
+        warn("Couldn't commit. Files are ready in your working tree");
       }
     } else {
-      info("Workflow files are ready to commit when you are.");
+      info("Workflow files are ready to commit when you are");
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

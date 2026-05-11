@@ -10,14 +10,14 @@ export async function linkCommand(): Promise<void> {
     const auth = requireAuth();
 
     if (!isGitRepo()) {
-      fatal("Not a git repository. Run this command from your project root.");
+      fatal("Not a git repo. Run this from your project root");
     }
 
     const repoUrl = getRemoteUrl();
     const repoName = getRepoName();
 
     if (!repoUrl || !repoName) {
-      fatal("Could not detect git remote. Make sure your repo has an origin remote.");
+      fatal("Couldn't detect a git remote. Make sure your repo has an origin remote");
     }
 
     const s = spinner("Linking...");
@@ -29,7 +29,7 @@ export async function linkCommand(): Promise<void> {
     const { orgs } = result;
 
     if (orgs.length === 0) {
-      fatal("No organizations found. Create one at app.buron.ai first.");
+      fatal("No organizations found. Create one at app.buron.ai first");
     }
 
     let selectedOrg: Org;
@@ -44,7 +44,7 @@ export async function linkCommand(): Promise<void> {
       });
       const found = orgs.find((o) => o.id === orgId);
       if (!found) {
-        fatal("Organization not found.");
+        fatal("Organization not found. Run `buron link` to try again");
         return;
       }
       selectedOrg = found;

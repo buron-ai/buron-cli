@@ -32,7 +32,7 @@ export function readAuth(): AuthData | null {
       return null;
     }
     if (isErrnoException(err) && (err.code === "EACCES" || err.code === "EPERM")) {
-      throw new Error(`Cannot read auth file (${err.code}): ${authPath}`);
+      throw new Error(`Can't read auth file (${err.code}): ${authPath}`);
     }
     throw err;
   }
@@ -42,13 +42,13 @@ export function readAuth(): AuthData | null {
     data = JSON.parse(raw) as AuthData;
   } catch {
     throw new Error(
-      `Auth file is corrupted: ${authPath}. Run \`buron logout\` then \`buron login\`.`,
+      `Auth file can't be read: ${authPath}. Run \`buron logout\` then \`buron login\``,
     );
   }
 
   if (!data.token || !data.email) {
     throw new Error(
-      `Auth file is malformed: ${authPath}. Run \`buron logout\` then \`buron login\`.`,
+      `Auth file is incomplete: ${authPath}. Run \`buron logout\` then \`buron login\``,
     );
   }
 
@@ -79,7 +79,7 @@ export function writeAuth(data: AuthData): void {
       } catch {}
     }
     if (isErrnoException(err) && (err.code === "EACCES" || err.code === "EPERM")) {
-      throw new Error(`Cannot write auth file (${err.code}): ${authPath}`);
+      throw new Error(`Can't write auth file (${err.code}): ${authPath}`);
     }
     throw err;
   }
@@ -103,7 +103,7 @@ export function clearAuth(): void {
 export function requireAuth(): AuthData {
   const auth = readAuth();
   if (!auth) {
-    throw new Error("Not logged in. Run `buron login` first.");
+    throw new Error("Not logged in. Run `buron login` first");
   }
   return auth;
 }

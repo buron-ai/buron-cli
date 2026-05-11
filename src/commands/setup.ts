@@ -22,7 +22,7 @@ export async function setupCommand(): Promise<void> {
     const existingAuth = readAuth();
     if (!existingAuth) {
       blank();
-      info("Step 1 of 4: Log in to Buron");
+      info("Step 1 of 4: log in to Buron");
       await loginCommand();
     } else {
       info(`Using existing login for ${existingAuth.email}`);
@@ -31,14 +31,14 @@ export async function setupCommand(): Promise<void> {
     const config = readConfig();
     if (!config) {
       blank();
-      info("Step 2 of 4: Link this repo to a Buron team");
+      info("Step 2 of 4: link this repo to a Buron team");
       await linkCommand();
     } else {
       info(`Using existing link for ${config.orgName} / ${config.teamName}`);
     }
 
     blank();
-    info("Step 3 of 4: Set up Buron project files");
+    info("Step 3 of 4: create Buron project files");
 
     const projectDir = getProjectDir();
     const contextPath = getContextPath();
@@ -70,18 +70,18 @@ export async function setupCommand(): Promise<void> {
     }
 
     if (existsSync(contextPath)) {
-      info("product-context.md already exists, skipping.");
+      info("product-context.md already exists, skipping");
     } else {
       writeFileSync(contextPath, PRODUCT_CONTEXT_TEMPLATE, "utf-8");
       success("Created .buron/product-context.md");
     }
 
     blank();
-    info("Step 4 of 4: Install Buron skills for your editors");
+    info("Step 4 of 4: install Buron skills for your editors");
 
     const selectedTargets = await selectInstallLocations();
     if (selectedTargets.length === 0) {
-      warn("No editor folders selected. Skipping skill installation.");
+      warn("No editor folders selected, skipping skill install");
     } else {
       for (const location of selectedTargets) {
         installEditorSupport(location);
@@ -94,12 +94,12 @@ export async function setupCommand(): Promise<void> {
     }
 
     blank();
-    success("Setup complete.");
+    success("Setup complete");
     if (existsSync(contextPath)) {
-      info("Next, run `/launch` or `/setup-google-ads-tracking` in your editor.");
+      info("Next, run `/launch` or `/setup-google-ads-tracking` in your editor");
     } else {
-      info("Before your first launch, fill `.buron/product-context.md`.");
-      info("Then run `/launch` or `/setup-google-ads-tracking` in your editor.");
+      info("Before your first launch, fill in `.buron/product-context.md`");
+      info("Then run `/launch` or `/setup-google-ads-tracking` in your editor");
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

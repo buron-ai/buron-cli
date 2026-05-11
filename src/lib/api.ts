@@ -113,7 +113,7 @@ async function request<T>(
 
   if (!res.ok) {
     if (res.status === 401) {
-      throw new Error("Session expired. Run `buron login` again.");
+      throw new Error("Session expired. Run `buron login` again");
     }
 
     let message = `API error: ${res.status}`;
@@ -158,7 +158,7 @@ export const api = {
     });
 
     if (!res.ok) {
-      throw new Error("Failed to start auth session");
+      throw new Error("Couldn't start login. Check your connection and try again");
     }
 
     const data = (await res.json()) as {
@@ -382,7 +382,135 @@ export const api = {
       });
     },
   },
+
+  // ── Data API ──
+
+  data: {
+    async query(
+      orgId: string,
+      teamId: string,
+      source: string,
+      query: string,
+      token: string,
+      options?: { customerId?: string; customerIds?: string[]; loginCustomerId?: string | null; dateRange?: { from: string; to: string } },
+    ): Promise<unknown> {
+      return request<unknown>("POST", "/api/v1/query", {
+        body: { orgId, teamId, source, query, ...options },
+        token,
+      });
+    },
+
+    async listQueries(
+      orgId: string,
+      teamId: string,
+      token: string,
+      source?: string,
+    ): Promise<QueryListResponse> {
+      const params = new URLSearchParams({ teamId, orgId });
+      if (source) params.set("source", source);
+      return request<QueryListResponse>("GET", `/api/v1/queries?${params}`, { token });
+    },
+
+    async createQuery(
+      orgId: string,
+      teamId: string,
+      name: string,
+      source: string,
+      query: string,
+      token: string,
+      config?: Record<string, unknown>,
+    ): Promise<SavedQueryResponse> {
+      return request<SavedQueryResponse>("POST", "/api/v1/queries", {
+        body: { orgId, teamId, name, source, query, config },
+        token,
+      });
+    },
+
+    async runQuery(
+      orgId: string,
+      teamId: string,
+      id: string,
+      token: string,
+    ): Promise<unknown> {
+      const params = new URLSearchParams({ teamId, orgId });
+      return request<unknown>("POST", `/api/v1/queries/${id}/run?${params}`, { token });
+    },
+
+    async listDashboards(
+      orgId: string,
+      teamId: string,
+      token: string,
+    ): Promise<DashboardListResponse> {
+      const params = new URLSearchParams({ teamId, orgId });
+      return request<DashboardListResponse>("GET", `/api/v1/dashboards?${params}`, { token });
+    },
+
+    async runDashboard(
+      orgId: string,
+      teamId: string,
+      id: string,
+      from: string,
+      to: string,
+      token: string,
+      fresh?: boolean,
+    ): Promise<unknown> {
+      const freshParam = fresh ? "&fresh=1" : "";
+      return request<unknown>("POST", `/api/v1/dashboards/${id}/run?${freshParam}`, {
+        body: { orgId, teamId, from, to },
+        token,
+      });
+    },
+
+    async getIntegration(
+      orgId: string,
+      teamId: string,
+      provider: string,
+      token: string,
+    ): Promise<IntegrationResponse> {
+      const params = new URLSearchParams({ teamId, orgId });
+      return request<IntegrationResponse>(
+        "GET",
+        `/api/v1/integrations/${provider}?${params}`,
+        { token },
+      );
+    },
+  },
 };
+
+// ── Data API response types ──
+
+export interface SavedQueryResponse {
+  id: string;
+  name: string;
+  source: string;
+  query: string;
+  config?: Record<string, unknown>;
+  createdAt?: string;
+}
+
+export interface QueryListResponse {
+  queries: SavedQueryResponse[];
+}
+
+export interface DashboardSummary {
+  id: string;
+  title?: string;
+  description?: string;
+  tags?: string[];
+}
+
+export interface DashboardListResponse {
+  dashboards: DashboardSummary[];
+}
+
+export interface IntegrationResponse {
+  connected: boolean;
+  provider: string;
+  status?: string;
+  externalAccountId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 // ── File API response types ──
 

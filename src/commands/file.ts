@@ -29,7 +29,7 @@ async function resolveContent(opts: { content?: string; fromFile?: string }): Pr
   }
   const piped = await readStdin();
   if (!piped) {
-    fail("No content provided. Pass --content, --from-file, or pipe via stdin.");
+    fail("No content provided. Pass --content, --from-file, or pipe via stdin");
   }
   return piped;
 }
