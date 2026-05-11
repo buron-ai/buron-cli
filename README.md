@@ -105,37 +105,30 @@ Installed by `buron setup` into every editor folder you select.
 After installing and running `buron setup`, drive the platform from your editor (`/launch`, `/setup-google-ads-tracking`) or from the shell with `buron file`:
 
 ```bash
-# Read your team's company profile
-buron file read /wiki/company.md
+# Pull a blog post draft into your MDX content directory
+buron file read /wiki/launches/2025-05-onboarding-flow/blog.md \
+  > content/blog/onboarding-flow.mdx
 
-# Find pages mentioning a competitor
-buron file grep "Loopio" --directory /wiki/entities/
+# Pull a changelog entry to commit alongside your release
+buron file read /wiki/launches/2025-05-onboarding-flow/changelog.md \
+  > CHANGELOG.md
 
-# Sync a daily report from CI into the Google Ads workspace
-generate-report > /tmp/report.md
-buron file write "/ads/google/reports/$(date +%Y-%m-%d).md" --from-file /tmp/report.md
+# Check which ad creatives are performing best before a redesign
+buron query "SELECT ad_group_ad.ad.name, metrics.conversions, metrics.cost_micros
+  FROM ad_group_ad WHERE segments.date DURING LAST_30_DAYS
+  ORDER BY metrics.conversions DESC LIMIT 10" --source gaql
 
-# Pipe content from anywhere
-echo "# Q2 recap" | buron file write /wiki/analyses/q2-recap.md
+# See what competitors are doing
+buron file grep "positioning" --directory /wiki/entities/competitors/
+
+# Check if the operator picked up your last launch
+buron file list /wiki/sources/claude-code/
+
+# Correct product details the curator got wrong
+buron file replace /wiki/entities/products/my-app.md \
+  --old "freemium SaaS" --new "usage-based SaaS"
 ```
 
-## Local development
-
-```bash
-git clone https://github.com/buron-ai/buron-cli.git
-cd buron-cli
-npm install
-npm run build
-npm link
-```
-
-Run with mock mode (no backend needed):
-
-```bash
-BURON_MOCK=1 buron login
-BURON_MOCK=1 buron link
-BURON_MOCK=1 buron setup
-```
 
 ## Reporting issues
 
