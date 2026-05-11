@@ -15,7 +15,6 @@ export async function queryCommand(
   queryString: string,
   options: {
     source: string;
-    customerId?: string;
     from?: string;
     to?: string;
   },
@@ -24,9 +23,7 @@ export async function queryCommand(
     const auth = requireAuth();
     const config = requireConfig();
 
-    const extra: Record<string, unknown> = {};
-    if (options.customerId) extra.customerId = options.customerId;
-    if (options.from && options.to) extra.dateRange = { from: options.from, to: options.to };
+    const dateRange = options.from && options.to ? { from: options.from, to: options.to } : undefined;
 
     const result = await api.data.query(
       config.orgId,
@@ -34,7 +31,7 @@ export async function queryCommand(
       options.source,
       queryString,
       auth.token,
-      extra,
+      dateRange,
     );
     process.stdout.write(JSON.stringify(result, null, 2));
     process.stdout.write("\n");

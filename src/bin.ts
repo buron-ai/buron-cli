@@ -116,7 +116,6 @@ program
   .command("query <queryString>")
   .description("Execute an ad-hoc query against a connected data source")
   .requiredOption("-s, --source <source>", "Query source (e.g. gaql)")
-  .option("--customer-id <id>", "Customer ID (source-specific)")
   .option("--from <date>", "Start date (YYYY-MM-DD)")
   .option("--to <date>", "End date (YYYY-MM-DD)")
   .action(queryCommand);

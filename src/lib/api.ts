@@ -392,10 +392,10 @@ export const api = {
       source: string,
       query: string,
       token: string,
-      options?: { customerId?: string; customerIds?: string[]; loginCustomerId?: string | null; dateRange?: { from: string; to: string } },
+      dateRange?: { from: string; to: string },
     ): Promise<unknown> {
       return request<unknown>("POST", "/api/v1/query", {
-        body: { orgId, teamId, source, query, ...options },
+        body: { orgId, teamId, source, query, dateRange },
         token,
       });
     },
