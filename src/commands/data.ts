@@ -23,7 +23,8 @@ export async function queryCommand(
     const auth = requireAuth();
     const config = requireConfig();
 
-    const dateRange = options.from && options.to ? { from: options.from, to: options.to } : undefined;
+    const dateRange =
+      options.from && options.to ? { from: options.from, to: options.to } : undefined;
 
     const result = await api.data.query(
       config.orgId,
@@ -46,7 +47,12 @@ export async function queriesListCommand(options: { source?: string }): Promise<
   try {
     const auth = requireAuth();
     const config = requireConfig();
-    const result = await api.data.listQueries(config.orgId, config.teamId, auth.token, options.source);
+    const result = await api.data.listQueries(
+      config.orgId,
+      config.teamId,
+      auth.token,
+      options.source,
+    );
     if (result.queries.length === 0) {
       blank();
       info("No saved queries");
@@ -69,7 +75,9 @@ export async function queriesCreateCommand(
   try {
     const auth = requireAuth();
     const config = requireConfig();
-    const parsedConfig = options.config ? JSON.parse(options.config) as Record<string, unknown> : undefined;
+    const parsedConfig = options.config
+      ? (JSON.parse(options.config) as Record<string, unknown>)
+      : undefined;
     const result = await api.data.createQuery(
       config.orgId,
       config.teamId,

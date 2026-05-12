@@ -41,10 +41,7 @@ program
     banner(VERSION);
   });
 
-program
-  .command("login")
-  .description("Log in to Buron (opens browser)")
-  .action(loginCommand);
+program.command("login").description("Log in to Buron (opens browser)").action(loginCommand);
 
 program.command("logout").description("Clear stored credentials").action(logoutCommand);
 
@@ -147,10 +144,7 @@ queries
 
 const dashboards = program.command("dashboards").description("View and run dashboards");
 
-dashboards
-  .command("list")
-  .description("List available dashboards")
-  .action(dashboardsListCommand);
+dashboards.command("list").description("List available dashboards").action(dashboardsListCommand);
 
 dashboards
   .command("run <id>")

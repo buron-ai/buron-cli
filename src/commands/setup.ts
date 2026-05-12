@@ -1,7 +1,14 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { checkbox } from "@inquirer/prompts";
+import { checkbox, confirm } from "@inquirer/prompts";
 import { readAuth } from "../lib/auth.js";
-import { readConfig } from "../lib/config.js";
+import { readConfig, requireConfig } from "../lib/config.js";
+import {
+  getMcpConfigPath,
+  getMcpTargetLabel,
+  getMcpUrl,
+  installMcpServer,
+  MCP_SUPPORTED_TARGETS,
+} from "../lib/mcp.js";
 import {
   getContextPath,
   getLaunchesDir,
@@ -77,7 +84,7 @@ export async function setupCommand(): Promise<void> {
     }
 
     blank();
-    info("Step 4 of 4: install Buron skills for your editors");
+    info("Step 4 of 5: install Buron skills for your editors");
 
     const selectedTargets = await selectInstallLocations();
     if (selectedTargets.length === 0) {
@@ -91,6 +98,45 @@ export async function setupCommand(): Promise<void> {
           .map((target) => target.label)
           .join(", ")}`,
       );
+    }
+
+    blank();
+    info("Step 5 of 5: connect the Buron MCP server");
+
+    const linkedConfig = requireConfig();
+    const mcpTargets = selectedTargets
+      .map((t) => t.id)
+      .filter((id) => MCP_SUPPORTED_TARGETS.includes(id));
+
+    if (mcpTargets.length === 0) {
+      info("No MCP-compatible editors selected, skipping");
+      info(`To connect manually, add this URL to your editor's MCP settings:`);
+      info(getMcpUrl(linkedConfig));
+    } else {
+      const addMcp = await confirm({
+        message: "Add the Buron MCP server to your editor?",
+        default: true,
+      });
+
+      if (addMcp) {
+        const installed: string[] = [];
+        for (const target of mcpTargets) {
+          if (installMcpServer(target, linkedConfig)) {
+            const mcpPath = getMcpConfigPath(target);
+            installed.push(getMcpTargetLabel(target));
+            if (mcpPath) {
+              info(`  → ${mcpPath.path.replace(`${process.cwd()}/`, "")}`);
+            }
+          }
+        }
+        if (installed.length > 0) {
+          success(`MCP server added for ${installed.join(", ")}`);
+          info("Your editor will ask you to sign in the first time it connects");
+        }
+      } else {
+        info("Skipped. To connect later, add this URL to your editor's MCP settings:");
+        info(getMcpUrl(linkedConfig));
+      }
     }
 
     blank();

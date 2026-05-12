@@ -426,12 +426,7 @@ export const api = {
       });
     },
 
-    async runQuery(
-      orgId: string,
-      teamId: string,
-      id: string,
-      token: string,
-    ): Promise<unknown> {
+    async runQuery(orgId: string, teamId: string, id: string, token: string): Promise<unknown> {
       const params = new URLSearchParams({ teamId, orgId });
       return request<unknown>("POST", `/api/v1/queries/${id}/run?${params}`, { token });
     },
@@ -468,11 +463,9 @@ export const api = {
       token: string,
     ): Promise<IntegrationResponse> {
       const params = new URLSearchParams({ teamId, orgId });
-      return request<IntegrationResponse>(
-        "GET",
-        `/api/v1/integrations/${provider}?${params}`,
-        { token },
-      );
+      return request<IntegrationResponse>("GET", `/api/v1/integrations/${provider}?${params}`, {
+        token,
+      });
     },
   },
 };
