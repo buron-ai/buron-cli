@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { getConfigPath } from "./paths.js";
 
@@ -36,6 +36,13 @@ export function writeConfig(config: ProjectConfig): void {
   }
 
   writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
+}
+
+export function clearConfig(): void {
+  const configPath = getConfigPath();
+  if (existsSync(configPath)) {
+    rmSync(configPath);
+  }
 }
 
 export function requireConfig(): ProjectConfig {

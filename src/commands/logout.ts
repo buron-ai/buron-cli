@@ -1,5 +1,6 @@
 import { api } from "../lib/api.js";
 import { clearAuth, readAuth } from "../lib/auth.js";
+import { clearConfig } from "../lib/config.js";
 import { blank, info, success } from "../lib/ui.js";
 
 export async function logoutCommand(): Promise<void> {
@@ -17,6 +18,7 @@ export async function logoutCommand(): Promise<void> {
   }
 
   clearAuth();
+  clearConfig();
   blank();
   success("Logged out");
 }
