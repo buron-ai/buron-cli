@@ -10,6 +10,7 @@ dist/
 .claude/
 .cursor/
 .obsidian/
+CLAUDE.md
 ---
 # Keep lockfile out of the repo — biome's optionalDependencies need to
 # resolve at install time per platform, and a macOS-generated lockfile
