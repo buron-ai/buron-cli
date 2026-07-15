@@ -386,16 +386,36 @@ export const api = {
   // ── Data API ──
 
   data: {
-    async query(
+    async listDatasets(orgId: string, teamId: string, token: string): Promise<DatasetListResponse> {
+      const params = new URLSearchParams({ teamId, orgId });
+      return request<DatasetListResponse>("GET", `/api/v1/datasets?${params}`, { token });
+    },
+
+    async describeDataset(id: string, token: string): Promise<unknown> {
+      return request<unknown>("GET", `/api/v1/datasets/${encodeURIComponent(id)}`, { token });
+    },
+
+    async queryDataset(
       orgId: string,
       teamId: string,
-      source: string,
-      query: string,
+      id: string,
+      query: SemanticQuery,
       token: string,
-      dateRange?: { from: string; to: string },
     ): Promise<unknown> {
-      return request<unknown>("POST", "/api/v1/query", {
-        body: { orgId, teamId, source, query, dateRange },
+      return request<unknown>("POST", `/api/v1/datasets/${encodeURIComponent(id)}/query`, {
+        body: { orgId, teamId, ...query },
+        token,
+      });
+    },
+
+    async warehouseSql(
+      orgId: string,
+      teamId: string,
+      sql: string,
+      token: string,
+    ): Promise<unknown> {
+      return request<unknown>("POST", "/api/v1/warehouse/sql", {
+        body: { orgId, teamId, sql },
         token,
       });
     },
@@ -404,10 +424,10 @@ export const api = {
       orgId: string,
       teamId: string,
       token: string,
-      source?: string,
+      dataset?: string,
     ): Promise<QueryListResponse> {
       const params = new URLSearchParams({ teamId, orgId });
-      if (source) params.set("source", source);
+      if (dataset) params.set("dataset", dataset);
       return request<QueryListResponse>("GET", `/api/v1/queries?${params}`, { token });
     },
 
@@ -415,13 +435,12 @@ export const api = {
       orgId: string,
       teamId: string,
       name: string,
-      source: string,
-      query: string,
+      query: SemanticQuery,
       token: string,
-      config?: Record<string, unknown>,
+      viz?: Record<string, unknown>,
     ): Promise<SavedQueryResponse> {
       return request<SavedQueryResponse>("POST", "/api/v1/queries", {
-        body: { orgId, teamId, name, source, query, config },
+        body: { orgId, teamId, name, query, viz },
         token,
       });
     },
@@ -429,6 +448,20 @@ export const api = {
     async runQuery(orgId: string, teamId: string, id: string, token: string): Promise<unknown> {
       const params = new URLSearchParams({ teamId, orgId });
       return request<unknown>("POST", `/api/v1/queries/${id}/run?${params}`, { token });
+    },
+
+    async addDashboardPanel(
+      orgId: string,
+      teamId: string,
+      dashboardId: string,
+      queryId: string,
+      token: string,
+    ): Promise<unknown> {
+      return request<unknown>(
+        "POST",
+        `/api/v1/dashboards/${encodeURIComponent(dashboardId)}/panels`,
+        { body: { orgId, teamId, queryId }, token },
+      );
     },
 
     async listDashboards(
@@ -472,13 +505,54 @@ export const api = {
 
 // ── Data API response types ──
 
+/**
+ * A semantic query — dataset + field picks. Mirrors the app's SemanticQuery
+ * wire contract (specs/2026-07-10-agent-semantic-datasets/contracts). The
+ * server validates; these types are display-level only.
+ */
+export interface SemanticQuery {
+  dataset?: string;
+  measures?: string[];
+  dimensions?: string[];
+  filters?: Array<{
+    field: string;
+    op: string;
+    value?: string | number | (string | number)[];
+    valueEnd?: string | number;
+    negated?: boolean;
+    logic?: "and" | "or";
+  }>;
+  dateRange?: { from: string; to: string; granularity?: string };
+  orderBy?: Array<{ field: string; dir: "asc" | "desc" }>;
+  limit?: number;
+}
+
+export interface DatasetSummary {
+  id: string;
+  name: string;
+  description: string;
+  family: string;
+  live: boolean;
+  availability: {
+    available: boolean;
+    reason?: string;
+    action?: string;
+    connectUrl?: string;
+  };
+}
+
+export interface DatasetListResponse {
+  datasets: DatasetSummary[];
+}
+
 export interface SavedQueryResponse {
   id: string;
   name: string;
-  source: string;
-  query: string;
-  config?: Record<string, unknown>;
-  createdAt?: string;
+  dataset: string | null;
+  kind: "structured" | "raw-sql";
+  query: SemanticQuery | null;
+  uri: string;
+  updatedAt?: string;
 }
 
 export interface QueryListResponse {

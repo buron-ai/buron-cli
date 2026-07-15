@@ -94,6 +94,24 @@ Installed by `buron setup` into every editor folder you select.
 | `buron file move <from> <to>` | Move or rename a file |
 | `buron file replace <path>` | Find and replace text in a file |
 
+#### Data
+
+You query by picking metrics, dimensions, and filters from a dataset — there is no query language. Add `--json` to any read command for pipeable output.
+
+| Command | Purpose |
+|---------|---------|
+| `buron datasets list` | List datasets this team can query, with availability |
+| `buron datasets describe <id>` | Show a dataset's metrics, dimensions, and filter operators |
+| `buron datasets query <id>` | Run a query (`-m` measures, `-d` dimensions, `-f field:op:value`, `--from/--to/--granularity`, `--sort`, `--limit`, or `--spec <file\|->`) |
+| `buron sql <statement>` | Read-only SELECT against your warehouse (escape hatch; prefer `datasets query`) |
+| `buron queries list` | List saved queries (`--dataset <id>` to filter) |
+| `buron queries create <name> --spec <file\|->` | Save a structured query from a SemanticQuery spec |
+| `buron queries run <id>` | Run a saved query and return fresh results |
+| `buron dashboards list` | List available dashboards |
+| `buron dashboards run <id> --from --to` | Run a dashboard for a date range |
+| `buron dashboards add <dashboardId> <queryId>` | Add a saved query as a tile on a custom dashboard |
+| `buron integration <provider>` | Check an integration's connection status |
+
 #### Skills
 
 | Command | Purpose |
@@ -113,10 +131,14 @@ buron file read /wiki/launches/2025-05-onboarding-flow/blog.md \
 buron file read /wiki/launches/2025-05-onboarding-flow/changelog.md \
   > CHANGELOG.md
 
-# Check which ad creatives are performing best before a redesign
-buron query "SELECT ad_group_ad.ad.name, metrics.conversions, metrics.cost_micros
-  FROM ad_group_ad WHERE segments.date DURING LAST_30_DAYS
-  ORDER BY metrics.conversions DESC LIMIT 10" --source gaql
+# Discover what data you can query, then pick fields — no query language
+buron datasets list
+buron datasets describe cross-channel-ads
+
+# Which ad creatives are performing best before a redesign
+buron datasets query cross-channel-ads \
+  -m cost,conversions -d ad_name \
+  --from 2026-06-01 --to 2026-06-30 --sort conversions:desc --limit 10
 
 # See what competitors are doing
 buron file grep "positioning" --directory /wiki/entities/competitors/
