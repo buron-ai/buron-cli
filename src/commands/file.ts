@@ -40,7 +40,7 @@ export async function fileReadCommand(path: string): Promise<void> {
   try {
     const auth = requireAuth();
     const config = requireConfig();
-    const result = await api.files.read(config.orgId, config.teamId, path, auth.token);
+    const result = await api.files.read(config.teamId, path, auth.token);
     if (!result.found) {
       fail(`File not found: ${path}`);
     }
@@ -60,7 +60,7 @@ export async function fileWriteCommand(
     const auth = requireAuth();
     const config = requireConfig();
     const content = await resolveContent(options);
-    const result = await api.files.write(config.orgId, config.teamId, path, content, auth.token);
+    const result = await api.files.write(config.teamId, path, content, auth.token);
     blank();
     success(`Wrote ${result.bytes} bytes → ${result.path}`);
   } catch (err) {
@@ -78,7 +78,7 @@ export async function fileAppendCommand(
     const auth = requireAuth();
     const config = requireConfig();
     const content = await resolveContent(options);
-    const result = await api.files.append(config.orgId, config.teamId, path, content, auth.token);
+    const result = await api.files.append(config.teamId, path, content, auth.token);
     blank();
     success(`Appended → ${result.path} (${result.bytes} bytes total)`);
   } catch (err) {
@@ -92,7 +92,7 @@ export async function fileListCommand(directory?: string): Promise<void> {
   try {
     const auth = requireAuth();
     const config = requireConfig();
-    const result = await api.files.list(config.orgId, config.teamId, auth.token, directory);
+    const result = await api.files.list(config.teamId, auth.token, directory);
     if (result.files.length === 0) {
       blank();
       info(directory ? `No files in ${directory}` : "No files");
@@ -112,7 +112,7 @@ export async function fileGlobCommand(pattern: string): Promise<void> {
   try {
     const auth = requireAuth();
     const config = requireConfig();
-    const result = await api.files.glob(config.orgId, config.teamId, pattern, auth.token);
+    const result = await api.files.glob(config.teamId, pattern, auth.token);
     if (result.files.length === 0) {
       blank();
       info(`No files match ${pattern}`);
@@ -136,7 +136,6 @@ export async function fileGrepCommand(
     const auth = requireAuth();
     const config = requireConfig();
     const result = await api.files.grep(
-      config.orgId,
       config.teamId,
       pattern,
       auth.token,
@@ -162,7 +161,7 @@ export async function fileDeleteCommand(path: string): Promise<void> {
   try {
     const auth = requireAuth();
     const config = requireConfig();
-    const result = await api.files.delete(config.orgId, config.teamId, path, auth.token);
+    const result = await api.files.delete(config.teamId, path, auth.token);
     blank();
     success(`Deleted: ${result.path}`);
   } catch (err) {
@@ -176,7 +175,7 @@ export async function fileMoveCommand(from: string, to: string): Promise<void> {
   try {
     const auth = requireAuth();
     const config = requireConfig();
-    const result = await api.files.move(config.orgId, config.teamId, from, to, auth.token);
+    const result = await api.files.move(config.teamId, from, to, auth.token);
     blank();
     success(`Moved: ${from} → ${result.path}`);
   } catch (err) {
@@ -194,7 +193,6 @@ export async function fileReplaceCommand(
     const auth = requireAuth();
     const config = requireConfig();
     const result = await api.files.replace(
-      config.orgId,
       config.teamId,
       path,
       options.old,

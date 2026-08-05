@@ -239,14 +239,10 @@ export const api = {
     });
   },
 
-  async generateToken(
-    orgId: string,
-    teamId: string,
-    token: string,
-  ): Promise<GenerateTokenResponse> {
+  async generateToken(teamId: string, token: string): Promise<GenerateTokenResponse> {
     if (isMockMode()) return mock.generateToken();
     return request<GenerateTokenResponse>("POST", "/api/v1/tokens", {
-      body: { orgId, teamId },
+      body: { teamId },
       token,
     });
   },
@@ -266,19 +262,17 @@ export const api = {
 
   files: {
     async read(
-      orgId: string,
       teamId: string,
       path: string,
       token: string,
     ): Promise<FileReadResponse> {
       return request<FileReadResponse>("POST", `/api/v1/teams/${teamId}/files/read`, {
-        body: { orgId, path },
+        body: { path },
         token,
       });
     },
 
     async write(
-      orgId: string,
       teamId: string,
       path: string,
       content: string,
@@ -286,63 +280,58 @@ export const api = {
       metadata?: Record<string, unknown>,
     ): Promise<FileWriteResponse> {
       return request<FileWriteResponse>("POST", `/api/v1/teams/${teamId}/files/write`, {
-        body: { orgId, path, content, metadata },
+        body: { path, content, metadata },
         token,
       });
     },
 
     async append(
-      orgId: string,
       teamId: string,
       path: string,
       content: string,
       token: string,
     ): Promise<FileWriteResponse> {
       return request<FileWriteResponse>("POST", `/api/v1/teams/${teamId}/files/append`, {
-        body: { orgId, path, content },
+        body: { path, content },
         token,
       });
     },
 
     async list(
-      orgId: string,
       teamId: string,
       token: string,
       directory?: string,
     ): Promise<FileListResponse> {
       return request<FileListResponse>("POST", `/api/v1/teams/${teamId}/files/list`, {
-        body: { orgId, directory },
+        body: { directory },
         token,
       });
     },
 
     async glob(
-      orgId: string,
       teamId: string,
       pattern: string,
       token: string,
     ): Promise<FileListResponse> {
       return request<FileListResponse>("POST", `/api/v1/teams/${teamId}/files/glob`, {
-        body: { orgId, pattern },
+        body: { pattern },
         token,
       });
     },
 
     async grep(
-      orgId: string,
       teamId: string,
       pattern: string,
       token: string,
       directory?: string,
     ): Promise<FileGrepResponse> {
       return request<FileGrepResponse>("POST", `/api/v1/teams/${teamId}/files/grep`, {
-        body: { orgId, pattern, directory },
+        body: { pattern, directory },
         token,
       });
     },
 
     async delete(
-      orgId: string,
       teamId: string,
       path: string,
       token: string,
@@ -350,25 +339,23 @@ export const api = {
       return request<{ deleted: boolean; path: string }>(
         "POST",
         `/api/v1/teams/${teamId}/files/delete`,
-        { body: { orgId, path }, token },
+        { body: { path }, token },
       );
     },
 
     async move(
-      orgId: string,
       teamId: string,
       from: string,
       to: string,
       token: string,
     ): Promise<{ path: string }> {
       return request<{ path: string }>("POST", `/api/v1/teams/${teamId}/files/move`, {
-        body: { orgId, from, to },
+        body: { from, to },
         token,
       });
     },
 
     async replace(
-      orgId: string,
       teamId: string,
       path: string,
       oldString: string,
@@ -377,7 +364,7 @@ export const api = {
       replaceAll?: boolean,
     ): Promise<FileWriteResponse> {
       return request<FileWriteResponse>("POST", `/api/v1/teams/${teamId}/files/replace`, {
-        body: { orgId, path, oldString, newString, replaceAll },
+        body: { path, oldString, newString, replaceAll },
         token,
       });
     },
