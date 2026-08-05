@@ -135,12 +135,7 @@ export async function fileGrepCommand(
   try {
     const auth = requireAuth();
     const config = requireConfig();
-    const result = await api.files.grep(
-      config.teamId,
-      pattern,
-      auth.token,
-      options.directory,
-    );
+    const result = await api.files.grep(config.teamId, pattern, auth.token, options.directory);
     if (result.matches.length === 0) {
       blank();
       info("No matches");

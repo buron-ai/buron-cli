@@ -261,11 +261,7 @@ export const api = {
   },
 
   files: {
-    async read(
-      teamId: string,
-      path: string,
-      token: string,
-    ): Promise<FileReadResponse> {
+    async read(teamId: string, path: string, token: string): Promise<FileReadResponse> {
       return request<FileReadResponse>("POST", `/api/v1/teams/${teamId}/files/read`, {
         body: { path },
         token,
@@ -297,22 +293,14 @@ export const api = {
       });
     },
 
-    async list(
-      teamId: string,
-      token: string,
-      directory?: string,
-    ): Promise<FileListResponse> {
+    async list(teamId: string, token: string, directory?: string): Promise<FileListResponse> {
       return request<FileListResponse>("POST", `/api/v1/teams/${teamId}/files/list`, {
         body: { directory },
         token,
       });
     },
 
-    async glob(
-      teamId: string,
-      pattern: string,
-      token: string,
-    ): Promise<FileListResponse> {
+    async glob(teamId: string, pattern: string, token: string): Promise<FileListResponse> {
       return request<FileListResponse>("POST", `/api/v1/teams/${teamId}/files/glob`, {
         body: { pattern },
         token,
@@ -343,12 +331,7 @@ export const api = {
       );
     },
 
-    async move(
-      teamId: string,
-      from: string,
-      to: string,
-      token: string,
-    ): Promise<{ path: string }> {
+    async move(teamId: string, from: string, to: string, token: string): Promise<{ path: string }> {
       return request<{ path: string }>("POST", `/api/v1/teams/${teamId}/files/move`, {
         body: { from, to },
         token,
