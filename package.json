@@ -1,6 +1,6 @@
 {
   "name": "@buron/cli",
-  "version": "0.2.5",
+  "version": "0.3.0",
   "description": "Turn code changes into launch-ready marketing. Capture what you ship, and let Buron's agents generate content, update campaigns, and track performance.",
   "type": "module",
   "bin": {

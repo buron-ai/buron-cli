@@ -1,12 +1,16 @@
 import { Command } from "commander";
 import {
+  dashboardsAddCommand,
   dashboardsListCommand,
   dashboardsRunCommand,
+  datasetsDescribeCommand,
+  datasetsListCommand,
+  datasetsQueryCommand,
   integrationCommand,
   queriesCreateCommand,
   queriesListCommand,
   queriesRunCommand,
-  queryCommand,
+  sqlCommand,
 } from "./commands/data.js";
 import {
   fileAppendCommand,
@@ -107,15 +111,47 @@ file
   .option("-a, --all", "Replace all occurrences (default: first only)")
   .action(fileReplaceCommand);
 
-// ── query ───────────────────────────────────────────────────────────
+// ── datasets ────────────────────────────────────────────────────────
 
-program
-  .command("query <queryString>")
-  .description("Execute an ad-hoc query against a connected data source")
-  .requiredOption("-s, --source <source>", "Query source (e.g. gaql)")
+function collect(value: string, previous: string[]): string[] {
+  return previous.concat([value]);
+}
+
+const datasets = program.command("datasets").description("Discover and query your data");
+
+datasets
+  .command("list")
+  .description("List datasets this team can query, with availability")
+  .option("--json", "Output raw JSON")
+  .action(datasetsListCommand);
+
+datasets
+  .command("describe <id>")
+  .description("Show a dataset's metrics, dimensions, and filter operators")
+  .action(datasetsDescribeCommand);
+
+datasets
+  .command("query <id>")
+  .description("Run a query by picking measures, dimensions, and filters — no SQL")
+  .option("-m, --measures <a,b>", "Metric field keys (comma-separated)")
+  .option("-d, --dimensions <x,y>", "Dimension field keys (comma-separated)")
+  .option("-f, --filter <field:op:value>", "Filter (repeatable)", collect, [])
   .option("--from <date>", "Start date (YYYY-MM-DD)")
   .option("--to <date>", "End date (YYYY-MM-DD)")
-  .action(queryCommand);
+  .option("--granularity <grain>", "day|week|month|quarter|year")
+  .option("--sort <field:dir>", "Sort (repeatable)", collect, [])
+  .option("--limit <n>", "Max rows")
+  .option("--spec <file|->", "Full SemanticQuery JSON (overrides flags)")
+  .option("--json", "Output raw JSON")
+  .action(datasetsQueryCommand);
+
+// ── sql (warehouse escape hatch) ────────────────────────────────────
+
+program
+  .command("sql <statement>")
+  .description("Run a read-only SELECT against your warehouse (prefer datasets query)")
+  .option("--json", "Output raw JSON")
+  .action(sqlCommand);
 
 // ── queries ─────────────────────────────────────────────────────────
 
@@ -124,27 +160,32 @@ const queries = program.command("queries").description("Manage saved queries");
 queries
   .command("list")
   .description("List saved queries")
-  .option("-s, --source <source>", "Filter by source")
+  .option("--dataset <id>", "Filter by dataset id")
+  .option("--json", "Output raw JSON")
   .action(queriesListCommand);
 
 queries
   .command("create <name>")
-  .description("Create a saved query")
-  .requiredOption("-s, --source <source>", "Query source (e.g. gaql)")
-  .requiredOption("-q, --query <queryString>", "The query string")
-  .option("--config <json>", "Chart/display config as JSON")
+  .description("Save a structured query from a SemanticQuery spec")
+  .requiredOption("--spec <file|->", "SemanticQuery JSON (dataset + picks)")
+  .option("--chart <kind>", "table|line|bar|area|donut")
   .action(queriesCreateCommand);
 
 queries
   .command("run <id>")
   .description("Execute a saved query and return fresh results")
+  .option("--json", "Output raw JSON")
   .action(queriesRunCommand);
 
 // ── dashboards ──────────────────────────────────────────────────────
 
 const dashboards = program.command("dashboards").description("View and run dashboards");
 
-dashboards.command("list").description("List available dashboards").action(dashboardsListCommand);
+dashboards
+  .command("list")
+  .description("List available dashboards")
+  .option("--json", "Output raw JSON")
+  .action(dashboardsListCommand);
 
 dashboards
   .command("run <id>")
@@ -153,6 +194,11 @@ dashboards
   .requiredOption("--to <date>", "End date (YYYY-MM-DD)")
   .option("--fresh", "Bypass cache")
   .action(dashboardsRunCommand);
+
+dashboards
+  .command("add <dashboardId> <queryId>")
+  .description("Add a saved query as a tile on a custom dashboard")
+  .action(dashboardsAddCommand);
 
 // ── integration ─────────────────────────────────────────────────────
 
