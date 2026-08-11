@@ -378,14 +378,14 @@ export const api = {
       });
     },
 
-    async warehouseSql(
-      orgId: string,
+    async googleAdsGaql(
       teamId: string,
-      sql: string,
+      query: string,
+      customerIds: string[] | undefined,
       token: string,
     ): Promise<unknown> {
-      return request<unknown>("POST", "/api/v1/warehouse/sql", {
-        body: { orgId, teamId, sql },
+      return request<unknown>("POST", "/api/v1/google-ads/gaql", {
+        body: { teamId, query, customerIds },
         token,
       });
     },

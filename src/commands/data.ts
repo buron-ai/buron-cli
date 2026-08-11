@@ -203,18 +203,89 @@ export async function datasetsQueryCommand(
   }
 }
 
-// ── sql (warehouse escape hatch) ────────────────────────────────────
+/**
+ * The GAQL hatch returns keyed rows (dotted GAQL field paths) plus per-account
+ * meta — a different envelope from the datasets surface, so it gets its own
+ * printer. Columns are the union of keys across rows: a field Google omitted
+ * on one row is stamped null server-side, so the header stays stable.
+ */
+function printGaqlResult(result: unknown): void {
+  const r = result as {
+    rows?: Array<Record<string, unknown>>;
+    meta?: {
+      rowCount?: number;
+      totalRowCount?: number;
+      truncated?: boolean;
+      apiVersion?: string;
+      rowCountByCustomer?: Record<string, number>;
+      errorsByCustomer?: Record<string, string>;
+    };
+  };
+  const rows = r.rows ?? [];
+  const meta = r.meta ?? {};
+  const errors = Object.entries(meta.errorsByCustomer ?? {});
 
-export async function sqlCommand(sql: string, options: { json?: boolean }): Promise<void> {
+  if (rows.length === 0 && errors.length === 0) {
+    blank();
+    info("0 rows.");
+    return;
+  }
+
+  if (rows.length > 0) {
+    const header: string[] = [];
+    for (const row of rows) {
+      for (const k of Object.keys(row)) if (!header.includes(k)) header.push(k);
+    }
+    const cell = (v: unknown) => (v === null ? "—" : String(v ?? ""));
+    const widths = header.map((h) => Math.max(h.length, ...rows.map((row) => cell(row[h]).length)));
+    const line = (cells: string[]) => cells.map((c, i) => c.padEnd(widths[i])).join("  ");
+    blank();
+    process.stdout.write(`${line(header)}\n`);
+    for (const row of rows) {
+      process.stdout.write(`${line(header.map((h) => cell(row[h])))}\n`);
+    }
+  }
+
+  blank();
+  const truncNote = meta.truncated
+    ? ` (truncated from ${meta.totalRowCount ?? "?"} — add LIMIT or narrow the dates)`
+    : "";
+  info(`${meta.rowCount ?? rows.length} rows${truncNote} · API ${meta.apiVersion ?? "?"}`);
+
+  const counts = Object.entries(meta.rowCountByCustomer ?? {});
+  if (counts.length > 1) {
+    info(`per account: ${counts.map(([id, n]) => `${id}=${n}`).join(", ")}`);
+  }
+  // Partial failures are never silently dropped — surface them verbatim.
+  for (const [customerId, message] of errors) {
+    error(`${customerId}: ${message}`);
+  }
+}
+
+// ── gaql (live Google Ads escape hatch) ─────────────────────────────
+//
+// The warehouse SQL command it replaces is gone: raw warehouse SQL is not
+// on the external surface (server-side decision, agent-surface-pass R13).
+// This hatch reads LIVE Google Ads config the datasets don't cover.
+
+export async function gaqlCommand(
+  query: string,
+  options: { customer?: string[]; json?: boolean },
+): Promise<void> {
   try {
     const auth = requireAuth();
     const config = requireConfig();
-    const result = await api.data.warehouseSql(config.orgId, config.teamId, sql, auth.token);
+    const result = await api.data.googleAdsGaql(
+      config.teamId,
+      query,
+      options.customer?.length ? options.customer : undefined,
+      auth.token,
+    );
     if (options.json) {
       printJson(result);
       return;
     }
-    printResult(result);
+    printGaqlResult(result);
   } catch (err) {
     fail(err instanceof Error ? err.message : "Unknown error");
   }

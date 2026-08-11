@@ -6,11 +6,11 @@ import {
   datasetsDescribeCommand,
   datasetsListCommand,
   datasetsQueryCommand,
+  gaqlCommand,
   integrationCommand,
   queriesCreateCommand,
   queriesListCommand,
   queriesRunCommand,
-  sqlCommand,
 } from "./commands/data.js";
 import {
   fileAppendCommand,
@@ -145,13 +145,21 @@ datasets
   .option("--json", "Output raw JSON")
   .action(datasetsQueryCommand);
 
-// ── sql (warehouse escape hatch) ────────────────────────────────────
+// ── gaql (live Google Ads escape hatch) ─────────────────────────────
 
 program
-  .command("sql <statement>")
-  .description("Run a read-only SELECT against your warehouse (prefer datasets query)")
+  .command("gaql <query>")
+  .description(
+    "Run a read-only GAQL query against live Google Ads — config reads the datasets don't cover (prefer: datasets query)",
+  )
+  .option(
+    "--customer <id>",
+    "Target one account (repeatable); omit to fan out across every enabled account",
+    collect,
+    [],
+  )
   .option("--json", "Output raw JSON")
-  .action(sqlCommand);
+  .action(gaqlCommand);
 
 // ── queries ─────────────────────────────────────────────────────────
 
