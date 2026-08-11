@@ -235,9 +235,7 @@ function printGaqlResult(result: unknown): void {
   }
 
   if (rows.length > 0) {
-    const header: string[] = (meta.fieldMask ?? []).filter((f) =>
-      rows.some((row) => f in row),
-    );
+    const header: string[] = (meta.fieldMask ?? []).filter((f) => rows.some((row) => f in row));
     for (const row of rows) {
       for (const k of Object.keys(row)) if (!header.includes(k)) header.push(k);
     }
