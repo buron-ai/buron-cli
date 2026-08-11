@@ -3,8 +3,11 @@ import { api, isMockMode } from "../lib/api.js";
 import { readAuth, writeAuth } from "../lib/auth.js";
 import { blank, error, fatal, info, link, spinner, success } from "../lib/ui.js";
 
-const POLL_INTERVAL_MS = 2_000;
 const POLL_TIMEOUT_MS = 5 * 60 * 1_000;
+/** RFC 8628 §3.5: every `slow_down` grows the poll spacing by 5 seconds. */
+const SLOW_DOWN_BACKOFF_MS = 5_000;
+/** Consecutive 5xx poll answers tolerated before giving up. */
+const MAX_TRANSIENT_POLL_FAILURES = 5;
 
 export async function loginCommand(): Promise<void> {
   const existing = readAuth();
@@ -41,11 +44,27 @@ export async function loginCommand(): Promise<void> {
     s.start();
 
     const startTime = Date.now();
+    // Poll at the server-advertised interval; polling faster gets every
+    // request rejected with `slow_down` and login can never complete (C4).
+    let pollDelayMs = session.pollIntervalMs;
+    let transientFailures = 0;
 
     while (Date.now() - startTime < POLL_TIMEOUT_MS) {
-      await sleep(POLL_INTERVAL_MS);
+      await sleep(pollDelayMs);
 
       const poll = await api.pollAuthSession(session.sessionId);
+
+      if (poll.status === "transient") {
+        transientFailures += 1;
+        if (transientFailures > MAX_TRANSIENT_POLL_FAILURES) {
+          s.stop();
+          fatal(
+            `Login poll kept failing (${poll.detail ?? "server error"}). Check your connection and run \`buron login\` again`,
+          );
+        }
+        continue;
+      }
+      transientFailures = 0;
 
       if (poll.status === "complete" && poll.token && poll.email) {
         s.stop();
@@ -53,6 +72,10 @@ export async function loginCommand(): Promise<void> {
         blank();
         success(`Logged in as ${poll.email}`);
         return;
+      }
+
+      if (poll.status === "slow_down") {
+        pollDelayMs += SLOW_DOWN_BACKOFF_MS;
       }
 
       if (poll.status === "denied") {

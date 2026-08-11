@@ -17,12 +17,22 @@ export interface DeviceAuthSession {
   sessionId: string;
   userCode: string;
   browserUrl: string;
+  /** Server-mandated poll spacing (RFC 8628 `interval`, converted to ms). */
+  pollIntervalMs: number;
 }
 
 export interface DeviceAuthPoll {
-  status: "pending" | "complete" | "denied" | "expired";
+  status:
+    | "pending"
+    | "slow_down"
+    | "transient"
+    | "complete"
+    | "denied"
+    | "expired";
   token?: string;
   email?: string;
+  /** For `transient`: what failed, for the give-up message. */
+  detail?: string;
 }
 
 export interface Team {
@@ -57,6 +67,7 @@ const mock = {
       sessionId: "dev_mock_001",
       userCode: "ABCD1234",
       browserUrl: "http://localhost:3000/device?user_code=ABCD1234",
+      pollIntervalMs: 100,
     };
   },
 
@@ -166,6 +177,7 @@ export const api = {
       user_code: string;
       verification_uri: string;
       verification_uri_complete: string;
+      interval?: number;
     };
 
     const approvalUrl = new URL(data.verification_uri_complete);
@@ -176,6 +188,9 @@ export const api = {
       sessionId: data.device_code,
       userCode: data.user_code,
       browserUrl: approvalUrl.toString(),
+      // The server rejects polls faster than its advertised interval with
+      // `slow_down` (RFC 8628 §3.5) — honor it, defaulting to 5s.
+      pollIntervalMs: (data.interval ?? 5) * 1_000,
     };
   },
 
@@ -183,26 +198,57 @@ export const api = {
     if (isMockMode()) return mock.pollAuthSession();
 
     const baseUrl = getApiUrl();
-    const res = await fetch(`${baseUrl}/api/auth/device/token`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        grant_type: DEVICE_GRANT_TYPE,
-        device_code: deviceCode,
-        client_id: DEVICE_CLIENT_ID,
-      }),
-    });
+    let res: Response;
+    try {
+      res = await fetch(`${baseUrl}/api/auth/device/token`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          grant_type: DEVICE_GRANT_TYPE,
+          device_code: deviceCode,
+          client_id: DEVICE_CLIENT_ID,
+        }),
+      });
+    } catch {
+      // A rejected fetch (connection reset, DNS blip, laptop waking up) is
+      // not an answer from the server — retry within the transient budget
+      // instead of aborting the whole login.
+      return { status: "transient", detail: "network error" };
+    }
 
     if (!res.ok) {
-      const errorBody = (await res.json()) as { error?: string };
+      const errorBody = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        error_description?: string;
+      };
 
-      if (errorBody.error === "access_denied") {
-        return { status: "denied" };
+      // RFC 8628 token-poll responses. Only `authorization_pending` means
+      // "keep polling as-is"; `slow_down` means the poll spacing must grow.
+      // Unrecognized OAuth error codes are fatal — mapping them to pending
+      // spins the spinner until timeout with zero feedback (C4). A 5xx
+      // without an error code is a gateway/deploy blip, not a protocol
+      // answer: report it as transient so the login loop can retry a few
+      // times instead of aborting on the first hiccup.
+      switch (errorBody.error) {
+        case "authorization_pending":
+          return { status: "pending" };
+        case "slow_down":
+          return { status: "slow_down" };
+        case "access_denied":
+          return { status: "denied" };
+        case "expired_token":
+          return { status: "expired" };
+        default: {
+          if (errorBody.error === undefined && res.status >= 500) {
+            return { status: "transient", detail: `HTTP ${res.status}` };
+          }
+          throw new Error(
+            errorBody.error_description ??
+              errorBody.error ??
+              `Login poll failed (HTTP ${res.status})`,
+          );
+        }
       }
-      if (errorBody.error === "expired_token") {
-        return { status: "expired" };
-      }
-      return { status: "pending" };
     }
 
     const data = (await res.json()) as { access_token: string };
