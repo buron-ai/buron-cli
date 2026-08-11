@@ -1,6 +1,8 @@
 import open from "open";
 import { api, isMockMode } from "../lib/api.js";
 import { readAuth, writeAuth } from "../lib/auth.js";
+import { readConfig } from "../lib/config.js";
+import { runLinkFlow } from "../lib/linking.js";
 import { blank, error, fatal, info, link, spinner, success } from "../lib/ui.js";
 
 const POLL_TIMEOUT_MS = 5 * 60 * 1_000;
@@ -82,6 +84,7 @@ export async function loginCommand(): Promise<void> {
         writeAuth({ token: poll.token, email: poll.email });
         blank();
         success(`Logged in as ${poll.email}`);
+        await autoLink(poll.token);
         return;
       }
 
@@ -107,6 +110,35 @@ export async function loginCommand(): Promise<void> {
     blank();
     error(`Couldn't log in: ${message}`);
     process.exit(1);
+  }
+}
+
+/**
+ * Login should end in a usable state, not hand the user a second required
+ * command. When the current directory is a linkable repo, run the link
+ * flow right away (silent for a single org+team, the usual picker
+ * otherwise); anything that prevents it degrades to a one-line hint —
+ * login itself has already succeeded, so nothing here is fatal.
+ */
+async function autoLink(token: string): Promise<void> {
+  const existing = readConfig();
+  if (existing) {
+    info(`This repo is linked to ${existing.orgName} / ${existing.teamName}`);
+    return;
+  }
+
+  try {
+    const outcome = await runLinkFlow(token);
+    if ("linked" in outcome) {
+      success(`Linked to ${outcome.linked.orgName} / ${outcome.linked.teamName}`);
+      info("Run `buron link` to change teams");
+    } else if (outcome.skipped === "no-orgs") {
+      info("No organizations yet — create one at app.buron.ai, then run `buron link`");
+    } else {
+      info("Run `buron link` inside a project repo to pick your team");
+    }
+  } catch {
+    info("Couldn't link this repo automatically — run `buron link`");
   }
 }
 

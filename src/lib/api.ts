@@ -22,13 +22,7 @@ export interface DeviceAuthSession {
 }
 
 export interface DeviceAuthPoll {
-  status:
-    | "pending"
-    | "slow_down"
-    | "transient"
-    | "complete"
-    | "denied"
-    | "expired";
+  status: "pending" | "slow_down" | "transient" | "complete" | "denied" | "expired";
   token?: string;
   email?: string;
   /** For `transient`: what failed, for the give-up message. */
@@ -201,9 +195,7 @@ export const api = {
    * answers 200 with a `null` body for a bad token, so validity means an
    * OK response that actually carries a user.
    */
-  async validateSession(
-    token: string,
-  ): Promise<"valid" | "invalid" | "unreachable"> {
+  async validateSession(token: string): Promise<"valid" | "invalid" | "unreachable"> {
     if (isMockMode()) return "valid";
 
     const baseUrl = getApiUrl();
