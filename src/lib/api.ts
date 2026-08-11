@@ -44,8 +44,12 @@ export interface LinkResponse {
   orgs: Org[];
 }
 
-export interface GenerateTokenResponse {
-  token: string;
+export interface CiTokenSummary {
+  id: string;
+  name: string | null;
+  start: string | null;
+  createdAt: string;
+  lastRequest: string | null;
 }
 
 export interface ProjectStatusResponse {
@@ -83,7 +87,7 @@ const mock = {
     };
   },
 
-  generateToken(): GenerateTokenResponse {
+  createCiToken(): { token: string } {
     return { token: "brnci_mock_xxx" };
   },
 
@@ -296,18 +300,36 @@ export const api = {
     await request("POST", "/api/auth/sign-out", { token });
   },
 
-  async link(repoUrl: string, repoName: string, token: string): Promise<LinkResponse> {
-    if (isMockMode()) return mock.link();
-    return request<LinkResponse>("POST", "/api/v1/link", {
-      body: { repoUrl, repoName },
+  async createCiToken(teamId: string, token: string): Promise<{ token: string }> {
+    if (isMockMode()) return mock.createCiToken();
+    return request<{ token: string }>("POST", "/api/v1/tokens", {
+      body: { teamId },
       token,
     });
   },
 
-  async generateToken(teamId: string, token: string): Promise<GenerateTokenResponse> {
-    if (isMockMode()) return mock.generateToken();
-    return request<GenerateTokenResponse>("POST", "/api/v1/tokens", {
-      body: { teamId },
+  async listCiTokens(teamId: string, token: string): Promise<{ tokens: CiTokenSummary[] }> {
+    if (isMockMode()) return { tokens: [] };
+    return request<{ tokens: CiTokenSummary[] }>(
+      "GET",
+      `/api/v1/tokens?teamId=${encodeURIComponent(teamId)}`,
+      { token },
+    );
+  },
+
+  async revokeCiToken(teamId: string, id: string, token: string): Promise<{ deleted: boolean }> {
+    if (isMockMode()) return { deleted: true };
+    return request<{ deleted: boolean }>(
+      "DELETE",
+      `/api/v1/tokens/${encodeURIComponent(id)}?teamId=${encodeURIComponent(teamId)}`,
+      { token },
+    );
+  },
+
+  async link(repoUrl: string, repoName: string, token: string): Promise<LinkResponse> {
+    if (isMockMode()) return mock.link();
+    return request<LinkResponse>("POST", "/api/v1/link", {
+      body: { repoUrl, repoName },
       token,
     });
   },

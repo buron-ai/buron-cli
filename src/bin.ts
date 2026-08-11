@@ -27,8 +27,7 @@ import { linkCommand } from "./commands/link.js";
 import { loginCommand } from "./commands/login.js";
 import { logoutCommand } from "./commands/logout.js";
 import { setupCommand } from "./commands/setup.js";
-import { setupCiCommand } from "./commands/setup-ci.js";
-import { skillsUpdateCommand } from "./commands/skills.js";
+import { tokenCreateCommand, tokenListCommand, tokenRevokeCommand } from "./commands/token.js";
 import { banner } from "./lib/ui.js";
 
 const VERSION = process.env.BURON_VERSION ?? "dev";
@@ -38,7 +37,7 @@ const program = new Command();
 program
   .name("buron")
   .description(
-    "Turn code changes into launch-ready marketing — capture what you ship, and let Buron generate the assets.",
+    "Your marketing data and knowledge, from the terminal and CI — and the fastest way to wire Buron's MCP server and skills into your AI editor.",
   )
   .version(VERSION)
   .hook("preAction", () => {
@@ -53,20 +52,27 @@ program.command("link").description("Link the current repo to a Buron team").act
 
 program
   .command("setup")
-  .description("Log in, link this repo, create Buron files, and install editor skills")
+  .description("Log in, link this repo, and connect your editors (MCP server + skills)")
+  .option("-y, --yes", "Skip prompts (use detected editors)")
+  .option("-a, --agents <ids...>", "Editors to connect: claude-code, cursor, copilot, codex")
   .action(setupCommand);
 
-program
-  .command("setup-ci")
-  .description("Set up GitHub Actions to run launches automatically")
-  .action(setupCiCommand);
+// ── token (CI credentials) ──────────────────────────────────────────
 
-const skills = program.command("skills").description("Manage installed skills");
+const token = program.command("token").description("Manage CI tokens (BURON_TOKEN)");
 
-skills
-  .command("update")
-  .description("Refresh installed skills with the latest templates")
-  .action(skillsUpdateCommand);
+token
+  .command("create")
+  .description("Mint a CI token for the linked team (shown once)")
+  .action(tokenCreateCommand);
+
+token
+  .command("list")
+  .description("List your CI tokens in the linked workspace")
+  .option("--json", "Output raw JSON")
+  .action(tokenListCommand);
+
+token.command("revoke <id>").description("Revoke a CI token by id").action(tokenRevokeCommand);
 
 const file = program.command("file").description("Read and write files in your team's library");
 

@@ -1,80 +1,108 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import type { ProjectConfig } from "./config.js";
-import type { SkillInstallTarget } from "./paths.js";
 
-interface McpServerEntry {
-  type: string;
-  url: string;
-}
+/**
+ * MCP wiring per editor, following each client's own convention (verified
+ * against the official docs, 2026-08):
+ *
+ * - Claude Code reads project servers from `.mcp.json` at the repo root
+ *   (NOT `.claude/settings.local.json`), `mcpServers` key, `type: "http"`.
+ * - Cursor reads `.cursor/mcp.json`, `mcpServers` key, `url` only.
+ * - VS Code / Copilot reads `.vscode/mcp.json`, `servers` key, `type: "http"`.
+ * - Codex reads `~/.codex/config.toml`, `[mcp_servers.<name>]` with `url`;
+ *   OAuth via `codex mcp login buron`.
+ */
+
+export const MCP_EDITOR_TARGETS = [
+  { id: "claude-code", label: "Claude Code", detectPath: ".claude" },
+  { id: "cursor", label: "Cursor", detectPath: ".cursor" },
+  { id: "copilot", label: "GitHub Copilot", detectPath: ".vscode" },
+  { id: "codex", label: "OpenAI Codex", detectPath: ".codex" },
+] as const;
+
+export type McpEditorTarget = (typeof MCP_EDITOR_TARGETS)[number]["id"];
 
 export function getMcpUrl(config: ProjectConfig): string {
+  // The clean URL resolves the caller's team server-side; the explicit
+  // teamId pin is always correct and required for multi-team workspaces —
+  // the CLI knows the linked team, so it pins.
   return `${config.apiUrl}/api/mcp?teamId=${config.teamId}`;
 }
 
-export function getMcpConfigPath(
-  target: SkillInstallTarget,
-): { path: string; shape: "mcpServers" | "servers" } | null {
-  const root = process.cwd();
-
-  switch (target) {
-    case "claude-code":
-      return {
-        path: join(root, ".claude", "settings.local.json"),
-        shape: "mcpServers",
-      };
-    case "cursor":
-      return { path: join(root, ".cursor", "mcp.json"), shape: "mcpServers" };
-    case "copilot":
-      return { path: join(root, ".vscode", "mcp.json"), shape: "servers" };
-    default:
-      return null;
-  }
+export interface McpInstallResult {
+  path: string;
+  action: "created" | "updated" | "kept";
 }
 
-export function installMcpServer(target: SkillInstallTarget, config: ProjectConfig): boolean {
-  const mcpConfig = getMcpConfigPath(target);
-  if (!mcpConfig) return false;
-
-  const entry: McpServerEntry = {
-    type: "streamable-http",
-    url: getMcpUrl(config),
-  };
-
-  const dir = dirname(mcpConfig.path);
+function writeJsonServerEntry(
+  filePath: string,
+  rootKey: "mcpServers" | "servers",
+  entry: Record<string, string>,
+): McpInstallResult {
+  const dir = dirname(filePath);
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
 
   let existing: Record<string, unknown> = {};
-  if (existsSync(mcpConfig.path)) {
+  let existed = false;
+  if (existsSync(filePath)) {
+    existed = true;
     try {
-      existing = JSON.parse(readFileSync(mcpConfig.path, "utf-8"));
+      existing = JSON.parse(readFileSync(filePath, "utf-8"));
     } catch {
       existing = {};
     }
   }
 
-  const key = mcpConfig.shape;
-  const servers = (existing[key] as Record<string, unknown> | undefined) ?? {};
+  const servers = (existing[rootKey] as Record<string, unknown> | undefined) ?? {};
   servers.buron = entry;
-  existing[key] = servers;
+  existing[rootKey] = servers;
 
-  writeFileSync(mcpConfig.path, `${JSON.stringify(existing, null, 2)}\n`, "utf-8");
-  return true;
+  writeFileSync(filePath, `${JSON.stringify(existing, null, 2)}\n`, "utf-8");
+  return { path: filePath, action: existed ? "updated" : "created" };
 }
 
-export function getMcpTargetLabel(target: SkillInstallTarget): string {
+export function installMcpServer(target: McpEditorTarget, config: ProjectConfig): McpInstallResult {
+  const root = process.cwd();
+  const url = getMcpUrl(config);
+
   switch (target) {
     case "claude-code":
-      return "Claude Code";
+      return writeJsonServerEntry(join(root, ".mcp.json"), "mcpServers", {
+        type: "http",
+        url,
+      });
     case "cursor":
-      return "Cursor";
+      return writeJsonServerEntry(join(root, ".cursor", "mcp.json"), "mcpServers", {
+        url,
+      });
     case "copilot":
-      return "GitHub Copilot";
-    default:
-      return target;
+      return writeJsonServerEntry(join(root, ".vscode", "mcp.json"), "servers", {
+        type: "http",
+        url,
+      });
+    case "codex": {
+      // TOML, appended once. Codex config is user-level; if a buron server
+      // is already configured, leave the user's version alone.
+      const configPath = join(homedir(), ".codex", "config.toml");
+      const existing = existsSync(configPath) ? readFileSync(configPath, "utf-8") : "";
+      if (existing.includes("[mcp_servers.buron]")) {
+        return { path: configPath, action: "kept" };
+      }
+      const dir = dirname(configPath);
+      if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true });
+      }
+      const block = `\n[mcp_servers.buron]\nurl = "${url}"\n`;
+      writeFileSync(configPath, existing + block, "utf-8");
+      return { path: configPath, action: existing ? "updated" : "created" };
+    }
+    default: {
+      const never: never = target;
+      throw new Error(`Unknown MCP target: ${never}`);
+    }
   }
 }
-
-export const MCP_SUPPORTED_TARGETS: SkillInstallTarget[] = ["claude-code", "cursor", "copilot"];
