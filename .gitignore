@@ -16,3 +16,4 @@ CLAUDE.md
 # resolve at install time per platform, and a macOS-generated lockfile
 # breaks the Linux CI runner's biome install.
 package-lock.json
+*.tgz

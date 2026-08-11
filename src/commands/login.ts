@@ -12,9 +12,20 @@ const MAX_TRANSIENT_POLL_FAILURES = 5;
 export async function loginCommand(): Promise<void> {
   const existing = readAuth();
   if (existing) {
-    info(`Already logged in as ${existing.email}`);
-    info("Run `buron logout` first to switch accounts");
-    return;
+    // A token file existing is not the same as being logged in: a token
+    // minted against another host (or since revoked) used to trap users in
+    // a "Session expired" ⇄ "Already logged in" loop (ledger C3). Verify it
+    // with one ping and fall through to a fresh device flow when dead.
+    const check = await api.validateSession(existing.token);
+    if (check === "valid") {
+      info(`Already logged in as ${existing.email}`);
+      info("Run `buron logout` first to switch accounts");
+      return;
+    }
+    if (check === "unreachable") {
+      fatal("Couldn't verify your session. Check your connection and try again");
+    }
+    info(`Stored session for ${existing.email} is no longer valid — signing in again`);
   }
 
   try {

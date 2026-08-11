@@ -194,6 +194,33 @@ export const api = {
     };
   },
 
+  /**
+   * One authenticated ping to check whether a stored token still works
+   * against the current API host (ledger C3: a dead token used to trap
+   * users in a "Session expired" ⇄ "Already logged in" loop). better-auth
+   * answers 200 with a `null` body for a bad token, so validity means an
+   * OK response that actually carries a user.
+   */
+  async validateSession(
+    token: string,
+  ): Promise<"valid" | "invalid" | "unreachable"> {
+    if (isMockMode()) return "valid";
+
+    const baseUrl = getApiUrl();
+    try {
+      const res = await fetch(`${baseUrl}/api/auth/get-session`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return "invalid";
+      const data = (await res.json().catch(() => null)) as {
+        user?: { id?: string };
+      } | null;
+      return data?.user?.id ? "valid" : "invalid";
+    } catch {
+      return "unreachable";
+    }
+  },
+
   async pollAuthSession(deviceCode: string): Promise<DeviceAuthPoll> {
     if (isMockMode()) return mock.pollAuthSession();
 
