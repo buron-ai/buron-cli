@@ -206,8 +206,10 @@ export async function datasetsQueryCommand(
 /**
  * The GAQL hatch returns keyed rows (dotted GAQL field paths) plus per-account
  * meta — a different envelope from the datasets surface, so it gets its own
- * printer. Columns are the union of keys across rows: a field Google omitted
- * on one row is stamped null server-side, so the header stays stable.
+ * printer. Columns follow the SELECT order (`meta.fieldMask`); anything extra
+ * Google tacked on (resource names, the `customer_id` tag) trails after. A
+ * field Google omitted on one row is stamped null server-side, so the header
+ * stays stable.
  */
 function printGaqlResult(result: unknown): void {
   const r = result as {
@@ -217,6 +219,7 @@ function printGaqlResult(result: unknown): void {
       totalRowCount?: number;
       truncated?: boolean;
       apiVersion?: string;
+      fieldMask?: string[];
       rowCountByCustomer?: Record<string, number>;
       errorsByCustomer?: Record<string, string>;
     };
@@ -232,7 +235,9 @@ function printGaqlResult(result: unknown): void {
   }
 
   if (rows.length > 0) {
-    const header: string[] = [];
+    const header: string[] = (meta.fieldMask ?? []).filter((f) =>
+      rows.some((row) => f in row),
+    );
     for (const row of rows) {
       for (const k of Object.keys(row)) if (!header.includes(k)) header.push(k);
     }
