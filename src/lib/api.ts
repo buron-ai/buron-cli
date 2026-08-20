@@ -52,11 +52,6 @@ export interface CiTokenSummary {
   lastRequest: string | null;
 }
 
-export interface ProjectStatusResponse {
-  status: "backlog" | "planned" | "in_progress" | "paused" | "done" | "cancelled";
-  assets?: Record<string, string>;
-}
-
 // ── Mock implementations ──
 
 const mock = {
@@ -89,10 +84,6 @@ const mock = {
 
   createCiToken(): { token: string } {
     return { token: "brnci_mock_xxx" };
-  },
-
-  projectStatus(): ProjectStatusResponse {
-    return { status: "done", assets: {} };
   },
 };
 
@@ -332,19 +323,6 @@ export const api = {
       body: { repoUrl, repoName },
       token,
     });
-  },
-
-  async projectStatus(
-    teamId: string,
-    projectId: string,
-    token: string,
-  ): Promise<ProjectStatusResponse> {
-    if (isMockMode()) return mock.projectStatus();
-    return request<ProjectStatusResponse>(
-      "GET",
-      `/api/v1/teams/${teamId}/projects/${projectId}/status`,
-      { token },
-    );
   },
 
   files: {
